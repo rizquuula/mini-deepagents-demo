@@ -1,6 +1,20 @@
 # mini-deepagents
 
-A minimal web chat with an 8K-token context cap. Python, managed with `uv`.
+A minimal agent harness that works inside an 8K-token context window. Today it is a web chat with a hard 8K cap and SQLite history. Python, managed with `uv`.
+
+## Why this project exists
+
+- Deep Agents assumes a window of 100K+ tokens. Its 8 default tool schemas alone cost about 2,480 tokens, about 30% of an 8K window.
+- Many small and local models have a window of 8K tokens or less. This project targets them.
+- The owner's bet: a small context window can still give good results with a good harness and a good agent loop.
+- This project exists to prove that bet. See `README.md` for the full story and the measured numbers.
+
+## Design rules that follow from the motivation
+
+- Every model request must fit in `CONTEXT_WINDOW` tokens, prompt plus output. Never break this cap.
+- Treat each prompt token as a cost. Before you add prompt text, a system prompt, or a tool schema, count its tokens and state the count.
+- Measure, do not guess. Check a change against the real `prompt_tokens` in the `model call succeeded` log line.
+- Build the simplest working version first. Add a part only when the user asks for it.
 
 ## Commands
 
