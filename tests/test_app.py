@@ -22,10 +22,14 @@ class FakeModel:
     def __init__(self, *, fail: bool = False) -> None:
         self.fail = fail
         self.calls: list[tuple[list[Mapping[str, str]], int]] = []
+        self.session_ids: list[str] = []
         self.close_calls = 0
 
-    def chat(self, messages: Sequence[Mapping[str, str]], max_tokens: int) -> str:
+    def chat(
+        self, messages: Sequence[Mapping[str, str]], max_tokens: int, session_id: str
+    ) -> str:
         self.calls.append((list(messages), max_tokens))
+        self.session_ids.append(session_id)
         if self.fail:
             raise LLMError("model request failed: status=500")
         return REPLY
@@ -87,6 +91,7 @@ def test_send_returns_reply_and_saves_the_exchange(
     assert response.status_code == 200
     assert response.json() == {"reply": REPLY}
     assert fake.calls == [([{"role": "user", "content": "hi"}], 1024)]
+    assert fake.session_ids == [f"mini-deepagents-{session_id}"]
     messages = client.get(f"/api/sessions/{session_id}/messages")
     assert messages.status_code == 200
     assert messages.json() == [

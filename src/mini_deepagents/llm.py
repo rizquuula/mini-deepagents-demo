@@ -11,6 +11,8 @@ import httpx
 logger = logging.getLogger(__name__)
 
 _CHAT_PATH = "/chat/completions"
+_USER_AGENT = "mini-deepagents/0.1.0"
+_SESSION_HEADER = "x-opencode-session"
 
 
 class LLMError(Exception):
@@ -18,7 +20,9 @@ class LLMError(Exception):
 
 
 class ChatModel(Protocol):
-    def chat(self, messages: Sequence[Mapping[str, str]], max_tokens: int) -> str: ...
+    def chat(
+        self, messages: Sequence[Mapping[str, str]], max_tokens: int, session_id: str
+    ) -> str: ...
 
 
 class OpenCodeClient:
@@ -36,15 +40,19 @@ class OpenCodeClient:
         self._url = base_url.rstrip("/") + _CHAT_PATH
         self._api_key = api_key
         self._model = model
-        self._client = httpx.Client(timeout=timeout, transport=transport)
+        self._client = httpx.Client(
+            timeout=timeout, transport=transport, headers={"User-Agent": _USER_AGENT}
+        )
 
-    def chat(self, messages: Sequence[Mapping[str, str]], max_tokens: int) -> str:
+    def chat(
+        self, messages: Sequence[Mapping[str, str]], max_tokens: int, session_id: str
+    ) -> str:
         payload = {
             "model": self._model,
             "messages": [{"role": m["role"], "content": m["content"]} for m in messages],
             "max_tokens": max_tokens,
         }
-        body = self._post(payload)
+        body = self._post(payload, session_id)
         reply = _extract_reply(body)
         _log_usage(self._model, body.get("usage"))
         return reply
@@ -52,8 +60,8 @@ class OpenCodeClient:
     def close(self) -> None:
         self._client.close()
 
-    def _post(self, payload: Mapping[str, object]) -> dict[str, object]:
-        headers = {"Authorization": f"Bearer {self._api_key}"}
+    def _post(self, payload: Mapping[str, object], session_id: str) -> dict[str, object]:
+        headers = {"Authorization": f"Bearer {self._api_key}", _SESSION_HEADER: session_id}
         try:
             response = self._client.post(self._url, json=payload, headers=headers)
             response.raise_for_status()

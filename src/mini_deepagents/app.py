@@ -26,6 +26,7 @@ _INDEX_HTML = Path(__file__).parent / "static" / "index.html"
 _SESSION_NOT_FOUND = "session not found"
 _TOO_LONG = "message is too long for the context window"
 _MODEL_FAILED = "model request failed"
+_MODEL_SESSION_PREFIX = "mini-deepagents-"
 
 
 class SendMessageRequest(BaseModel):
@@ -111,7 +112,11 @@ def _add_routes(app: FastAPI, settings: Settings, store: ChatStore, model: ChatM
             raise HTTPException(status.HTTP_413_CONTENT_TOO_LARGE, _TOO_LONG) from exc
 
         try:
-            reply = model.chat(window, settings.max_output_tokens)
+            reply = model.chat(
+                window,
+                settings.max_output_tokens,
+                session_id=f"{_MODEL_SESSION_PREFIX}{session_id}",
+            )
         except LLMError as exc:
             logger.warning("model call failed session_id=%s error=%s", session_id, exc)
             raise HTTPException(status.HTTP_502_BAD_GATEWAY, _MODEL_FAILED) from exc

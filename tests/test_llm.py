@@ -10,6 +10,7 @@ from mini_deepagents.llm import LLMError, OpenCodeClient
 
 API_KEY = "sk-test-secret-key-123"
 MODEL = "deepseek-v4.1-flash"
+SESSION_ID = "mini-deepagents-7"
 LOGGER_NAME = "mini_deepagents.llm"
 MESSAGES = [
     {"role": "system", "content": "You are helpful."},
@@ -51,21 +52,23 @@ def test_chat_posts_to_chat_completions_without_double_slash(base_url: str) -> N
     requests: list[httpx.Request] = []
     client = make_client(httpx.Response(200, json=ok_body()), requests, base_url)
 
-    client.chat(MESSAGES, max_tokens=64)
+    client.chat(MESSAGES, max_tokens=64, session_id=SESSION_ID)
 
     assert len(requests) == 1
     assert requests[0].method == "POST"
     assert str(requests[0].url) == "https://example.test/v1/chat/completions"
 
 
-def test_chat_sends_bearer_auth_and_exact_body() -> None:
+def test_chat_sends_auth_session_and_user_agent_headers_and_exact_body() -> None:
     requests: list[httpx.Request] = []
     client = make_client(httpx.Response(200, json=ok_body()), requests)
 
-    client.chat(MESSAGES, max_tokens=64)
+    client.chat(MESSAGES, max_tokens=64, session_id=SESSION_ID)
 
     request = requests[0]
     assert request.headers["Authorization"] == f"Bearer {API_KEY}"
+    assert request.headers["x-opencode-session"] == SESSION_ID
+    assert request.headers["User-Agent"] == "mini-deepagents/0.1.0"
     assert json.loads(request.content) == {
         "model": MODEL,
         "messages": MESSAGES,
@@ -76,7 +79,7 @@ def test_chat_sends_bearer_auth_and_exact_body() -> None:
 def test_chat_returns_message_content_and_ignores_reasoning() -> None:
     client = make_client(httpx.Response(200, json=ok_body("the answer")), [])
 
-    assert client.chat(MESSAGES, max_tokens=64) == "the answer"
+    assert client.chat(MESSAGES, max_tokens=64, session_id=SESSION_ID) == "the answer"
 
 
 @pytest.mark.parametrize("status", [401, 500])
@@ -84,7 +87,7 @@ def test_chat_raises_llm_error_on_error_status_without_leaking_key(status: int) 
     client = make_client(httpx.Response(status, json={"error": "nope"}), [])
 
     with pytest.raises(LLMError) as excinfo:
-        client.chat(MESSAGES, max_tokens=64)
+        client.chat(MESSAGES, max_tokens=64, session_id=SESSION_ID)
 
     assert API_KEY not in str(excinfo.value)
     assert isinstance(excinfo.value.__cause__, httpx.HTTPError)
@@ -99,7 +102,7 @@ def test_chat_raises_llm_error_on_transport_failure() -> None:
     )
 
     with pytest.raises(LLMError) as excinfo:
-        client.chat(MESSAGES, max_tokens=64)
+        client.chat(MESSAGES, max_tokens=64, session_id=SESSION_ID)
 
     assert API_KEY not in str(excinfo.value)
     assert isinstance(excinfo.value.__cause__, httpx.HTTPError)
@@ -119,7 +122,7 @@ def test_chat_raises_llm_error_on_unusable_body(response: httpx.Response, match:
     client = make_client(response, [])
 
     with pytest.raises(LLMError, match=match):
-        client.chat(MESSAGES, max_tokens=64)
+        client.chat(MESSAGES, max_tokens=64, session_id=SESSION_ID)
 
 
 def test_chat_logs_token_usage_without_key_or_content(caplog: pytest.LogCaptureFixture) -> None:
@@ -127,7 +130,7 @@ def test_chat_logs_token_usage_without_key_or_content(caplog: pytest.LogCaptureF
     client = make_client(httpx.Response(200, json=ok_body("reply text", usage)), [])
 
     with caplog.at_level(logging.INFO, logger=LOGGER_NAME):
-        client.chat(MESSAGES, max_tokens=64)
+        client.chat(MESSAGES, max_tokens=64, session_id=SESSION_ID)
 
     records = [r for r in caplog.records if r.name == LOGGER_NAME]
     assert len(records) == 1
@@ -146,7 +149,7 @@ def test_chat_logs_none_token_counts_when_usage_missing(caplog: pytest.LogCaptur
     client = make_client(httpx.Response(200, json=ok_body("reply text")), [])
 
     with caplog.at_level(logging.INFO, logger=LOGGER_NAME):
-        client.chat(MESSAGES, max_tokens=64)
+        client.chat(MESSAGES, max_tokens=64, session_id=SESSION_ID)
 
     records = [r for r in caplog.records if r.name == LOGGER_NAME]
     assert len(records) == 1
