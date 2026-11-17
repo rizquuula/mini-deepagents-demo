@@ -10,7 +10,8 @@ from pathlib import Path
 import pytest
 
 from mini_deepagents.adapters.storage import create_repository
-from mini_deepagents.adapters.storage.sqlite import ChatStore, SqliteChatRepository
+from mini_deepagents.adapters.storage.migrations import MIGRATIONS
+from mini_deepagents.adapters.storage.sqlite import SqliteChatRepository
 from mini_deepagents.chat import Message
 from mini_deepagents.chat.ports import ChatRepository
 from mini_deepagents.config import Settings
@@ -85,18 +86,22 @@ def test_sqlite_data_survives_reopen(tmp_path: Path) -> None:
     ]
 
 
-def test_sqlite_upgrades_a_chat_store_file_to_version_1(tmp_path: Path) -> None:
+def test_sqlite_adopts_an_unversioned_file(tmp_path: Path) -> None:
     db_path = tmp_path / "chat.db"
-    old_store = ChatStore(db_path)
-    old_session = old_store.create_session()
-    old_store.add_exchange(int(old_session["id"]), "hi", "hello")
+    with closing(sqlite3.connect(db_path)) as conn, conn:
+        conn.executescript(MIGRATIONS[0][1])
+        session_id = conn.execute("INSERT INTO sessions DEFAULT VALUES").lastrowid
+        conn.executemany(
+            "INSERT INTO messages (session_id, role, content) VALUES (?, ?, ?)",
+            [(session_id, "user", "hi"), (session_id, "assistant", "hello")],
+        )
     assert _user_version(db_path) == 0
 
     repository = SqliteChatRepository(db_path)
 
     assert _user_version(db_path) == 1
-    assert [s.id for s in repository.list_sessions()] == [old_session["id"]]
-    assert repository.get_messages(int(old_session["id"])) == [
+    assert [s.id for s in repository.list_sessions()] == [session_id]
+    assert repository.get_messages(session_id) == [
         Message(role="user", content="hi"),
         Message(role="assistant", content="hello"),
     ]

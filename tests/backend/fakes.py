@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import AsyncIterator, Sequence
+from collections.abc import AsyncGenerator, Sequence
 from datetime import datetime, timedelta, timezone
 
 from mini_deepagents.chat import Message, ModelEvent, Session, StreamEnd, TextDelta, Usage
@@ -32,7 +32,7 @@ class FakeChatModel:
 
     async def stream(
         self, messages: Sequence[Message], *, max_tokens: int, session_key: str
-    ) -> AsyncIterator[ModelEvent]:
+    ) -> AsyncGenerator[ModelEvent, None]:
         self.calls.append((list(messages), max_tokens, session_key))
         finished = False
         try:

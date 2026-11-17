@@ -31,8 +31,8 @@ CREATE INDEX IF NOT EXISTS idx_messages_session_id_id ON messages (session_id, i
 """
 
 MIGRATIONS: Final[tuple[tuple[int, str], ...]] = (
-    # Version 1 is the schema of the old ChatStore. ``IF NOT EXISTS`` lets it
-    # adopt a ChatStore file, which has user_version 0.
+    # Version 1 is the schema of an unversioned file (user_version 0) from
+    # before migrations existed. ``IF NOT EXISTS`` lets it adopt such a file.
     (1, _V1_SCHEMA),
 )
 

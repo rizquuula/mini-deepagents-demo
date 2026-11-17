@@ -7,7 +7,7 @@ The HTTP adapter logs from the data that the service returns.
 from __future__ import annotations
 
 import asyncio
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from contextlib import aclosing
 from dataclasses import dataclass
 
@@ -100,7 +100,7 @@ class ChatService:
             budget_tokens=self._input_budget,
         )
 
-    async def stream_reply(self, turn: PreparedTurn) -> AsyncIterator[ChatEvent]:
+    async def stream_reply(self, turn: PreparedTurn) -> AsyncGenerator[ChatEvent, None]:
         """Stream the model reply, then save the exchange and yield ``ReplyDone``.
 
         The service saves the exchange only after the model stream completes.

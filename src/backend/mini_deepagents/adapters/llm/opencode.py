@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import logging
 import time
-from collections.abc import AsyncIterator, Mapping, Sequence
+from collections.abc import AsyncGenerator, AsyncIterator, Mapping, Sequence
 
 import httpx
 
@@ -42,7 +42,7 @@ class OpenCodeChatModel:
 
     async def stream(
         self, messages: Sequence[Message], *, max_tokens: int, session_key: str
-    ) -> AsyncIterator[ModelEvent]:
+    ) -> AsyncGenerator[ModelEvent, None]:
         payload = {
             "model": self._model,
             "messages": [{"role": m.role, "content": m.content} for m in messages],
