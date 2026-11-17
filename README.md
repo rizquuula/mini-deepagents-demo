@@ -98,16 +98,18 @@ The web page shows that ID next to an error, so you can find the matching lines.
 One real request, with the timestamps and some fields removed:
 
 ```
-INFO  mini_deepagents.app request received request_id=f1da5b3acaca method=POST path=/api/sessions/1/messages
-INFO  mini_deepagents.app context fitted request_id=f1da5b3acaca session_id=1 sent_messages=1 dropped_messages=0 estimated_tokens=19 budget_tokens=7168
-INFO  mini_deepagents.llm model call succeeded request_id=f1da5b3acaca prompt_tokens=43 completion_tokens=31 duration_ms=2789
-INFO  mini_deepagents.app exchange saved request_id=f1da5b3acaca session_id=1 reply_chars=13
-INFO  mini_deepagents.app request completed request_id=f1da5b3acaca method=POST path=/api/sessions/1/messages status=200 duration_ms=2793
+INFO  ...http.middleware  request received       request_id=3e7c6ebefef6 method=POST path=/api/v1/sessions/1/messages
+INFO  ...http.api         context fitted         request_id=3e7c6ebefef6 session_id=1 sent_messages=1 dropped_messages=0 estimated_tokens=27 budget_tokens=7168
+INFO  ...llm.opencode     model stream succeeded request_id=3e7c6ebefef6 prompt_tokens=41 completion_tokens=105 reasoning_tokens=47 first_delta_ms=3000 duration_ms=4166
+INFO  ...http.sse         stream completed       request_id=3e7c6ebefef6 session_id=1 reply_chars=326 first_delta_ms=3000 duration_ms=4169
+INFO  ...http.middleware  request completed      request_id=3e7c6ebefef6 method=POST path=/api/v1/sessions/1/messages status=200 duration_ms=4189
 ```
 
 - `context fitted` shows the trimming decision for each request.
-- `model call succeeded` shows the real token counts from the API.
-- Errors appear as `ERROR model call failed`, `WARNING message rejected reason=too_long`, or `ERROR unhandled error` with a traceback.
+- `model stream succeeded` shows the real token counts from the API, including the thinking tokens (`reasoning_tokens`).
+- `first_delta_ms` is the time until the first reply text. In this example, the model thought for 3 seconds, then streamed the reply in about 1 second.
+- Errors appear as `ERROR stream failed`, `WARNING message rejected reason=too_long`, or `ERROR unhandled error` with a traceback.
+- A closed browser tab shows as `stream cancelled`. Nothing is saved for that turn.
 - The logs never hold message text or the API key.
 
 ## API
