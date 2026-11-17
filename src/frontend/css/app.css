@@ -1,0 +1,152 @@
+:root {
+  color-scheme: light dark;
+  --bg: #f7f7f8;
+  --surface: #ffffff;
+  --surface-alt: #eef0f3;
+  --text: #1b1d21;
+  --text-muted: #5b616b;
+  --border: #d5d9df;
+  --primary: #2457c5;
+  --on-primary: #ffffff;
+  --user-bg: #dde7fb;
+  --error-bg: #fde8e8;
+  --error-text: #9b1c1c;
+  --focus: #2457c5;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --radius-s: 8px;
+  --radius-m: 12px;
+  --font-body: 15px;
+  --font-small: 13px;
+  --font-title: 18px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #17191d;
+    --surface: #202328;
+    --surface-alt: #2a2e35;
+    --text: #eceef1;
+    --text-muted: #a3a9b3;
+    --border: #3a3f47;
+    --primary: #8fb0f5;
+    --on-primary: #10141c;
+    --user-bg: #263a5e;
+    --error-bg: #4a2224;
+    --error-text: #ffc9c9;
+    --focus: #8fb0f5;
+  }
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font: var(--font-body)/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+.layout {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  height: 100vh;
+  height: 100dvh;
+}
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+}
+.sidebar h1 { font-size: var(--font-title); margin: 0; }
+.session-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-1); }
+.session-button {
+  width: 100%;
+  min-height: 44px;
+  padding: var(--space-2) var(--space-3);
+  text-align: left;
+  background: transparent;
+  color: var(--text);
+  border: 1px solid transparent;
+  border-radius: var(--radius-s);
+  font: inherit;
+  cursor: pointer;
+}
+.session-button:hover { background: var(--surface-alt); }
+.session-button[aria-current="true"] { background: var(--surface-alt); border-color: var(--primary); }
+.session-label { display: block; font-weight: 600; }
+.session-date { display: block; font-size: var(--font-small); color: var(--text-muted); }
+.chat { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-6) var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.message {
+  max-width: min(720px, 100%);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-m);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.message-user { align-self: flex-end; background: var(--user-bg); }
+.message-assistant { align-self: flex-start; background: var(--surface); border: 1px solid var(--border); }
+.message-pending { color: var(--text-muted); font-style: italic; }
+.message-error { align-self: stretch; background: var(--error-bg); color: var(--error-text); }
+.role { display: block; font-size: var(--font-small); font-weight: 600; color: var(--text-muted); margin-bottom: var(--space-1); }
+.message-error .role { color: var(--error-text); }
+.empty-state { margin: auto; text-align: center; color: var(--text-muted); }
+.composer {
+  display: flex;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4) calc(var(--space-3) + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+.composer textarea {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  max-height: 200px;
+  resize: vertical;
+  padding: var(--space-2) var(--space-3);
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-s);
+  font: inherit;
+}
+.button {
+  min-height: 44px;
+  padding: 0 var(--space-4);
+  background: var(--primary);
+  color: var(--on-primary);
+  border: none;
+  border-radius: var(--radius-s);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.button:disabled { opacity: 0.6; cursor: not-allowed; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+@media (max-width: 639px) {
+  .layout { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
+  .sidebar { border-right: none; border-bottom: 1px solid var(--border); max-height: 35vh; }
+}
