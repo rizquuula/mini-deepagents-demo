@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from mini_deepagents.context import (
+from mini_deepagents.chat.context import (
     ContextOverflowError,
     estimate_tokens,
     fit_to_budget,

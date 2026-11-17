@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from mini_deepagents.logging_setup import (
+from mini_deepagents.observability.logging import (
     KeyValueFormatter,
     RequestIdFilter,
     request_id_var,

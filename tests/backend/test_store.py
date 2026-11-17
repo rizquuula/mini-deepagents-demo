@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from mini_deepagents.store import ChatStore, SessionNotFoundError
+from mini_deepagents.adapters.storage.sqlite import ChatStore, SessionNotFoundError
 
 UNKNOWN_SESSION_ID = 9999
 

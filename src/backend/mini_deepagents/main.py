@@ -1,6 +1,6 @@
 """FastAPI app: the chat API and the one-page web UI.
 
-Run with: uv run --env-file .env uvicorn mini_deepagents.app:create_app --factory
+Run with: uv run --env-file .env uvicorn mini_deepagents.main:create_app --factory
 """
 
 from __future__ import annotations
@@ -18,14 +18,14 @@ from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel, Field
 
 from mini_deepagents.config import Settings
-from mini_deepagents.context import ContextOverflowError, estimate_tokens, fit_to_budget
-from mini_deepagents.llm import ChatModel, LLMError, OpenCodeClient
-from mini_deepagents.logging_setup import request_id_var, setup_logging
-from mini_deepagents.store import ChatStore, SessionNotFoundError
+from mini_deepagents.chat.context import ContextOverflowError, estimate_tokens, fit_to_budget
+from mini_deepagents.adapters.llm.opencode import ChatModel, LLMError, OpenCodeClient
+from mini_deepagents.observability.logging import request_id_var, setup_logging
+from mini_deepagents.adapters.storage.sqlite import ChatStore, SessionNotFoundError
 
 logger = logging.getLogger(__name__)
 
-_INDEX_HTML = Path(__file__).parent / "static" / "index.html"
+_INDEX_HTML = Path(__file__).resolve().parents[2] / "frontend" / "index.html"
 _SESSION_NOT_FOUND = "session not found"
 _TOO_LONG = "message is too long for the context window"
 _MODEL_FAILED = "model request failed"

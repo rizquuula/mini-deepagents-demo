@@ -7,12 +7,12 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from mini_deepagents.app import create_app
+from mini_deepagents.main import create_app
 from mini_deepagents.config import Settings
-from mini_deepagents.context import estimate_tokens
-from mini_deepagents.llm import LLMError
-from mini_deepagents.logging_setup import RequestIdFilter
-from mini_deepagents.store import ChatStore
+from mini_deepagents.chat.context import estimate_tokens
+from mini_deepagents.adapters.llm.opencode import LLMError
+from mini_deepagents.observability.logging import RequestIdFilter
+from mini_deepagents.adapters.storage.sqlite import ChatStore
 
 REPLY = "fixed reply"
 UNKNOWN_SESSION_ID = 9999

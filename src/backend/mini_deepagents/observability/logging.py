@@ -2,7 +2,7 @@
 
 One line looks like this:
 
-    2026-01-02T03:04:05.678Z INFO mini_deepagents.app session created request_id=3f2a9c1b7d0e session_id=7
+    2026-01-02T03:04:05.678Z INFO mini_deepagents.main session created request_id=3f2a9c1b7d0e session_id=7
 """
 
 from __future__ import annotations

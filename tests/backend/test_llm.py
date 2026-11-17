@@ -6,12 +6,12 @@ import logging
 import httpx
 import pytest
 
-from mini_deepagents.llm import LLMError, OpenCodeClient
+from mini_deepagents.adapters.llm.opencode import LLMError, OpenCodeClient
 
 API_KEY = "sk-test-secret-key-123"
 MODEL = "deepseek-v4.1-flash"
 SESSION_ID = "mini-deepagents-7"
-LOGGER_NAME = "mini_deepagents.llm"
+LOGGER_NAME = "mini_deepagents.adapters.llm.opencode"
 MESSAGES = [
     {"role": "system", "content": "You are helpful."},
     {"role": "user", "content": "private user question"},
