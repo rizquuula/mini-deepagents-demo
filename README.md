@@ -1,7 +1,7 @@
 # mini-deepagents
 
 A minimal agent harness that works inside an **8K-token context window**.
-Today it is a small web chat with a hard 8K cap and SQLite history.
+Today it is a small web chat with a hard 8K cap, SQLite history, and replies that stream to the browser over SSE.
 
 ## Why this project exists
 
@@ -67,7 +67,9 @@ Run `make` to see every target.
 | `make` or `make help` | Lists the targets. |
 | `make run` | Starts the server from `.env`. Override the address with `HOST` and `PORT`, for example `make run PORT=9000`. |
 | `make logs` | Follows `logs/app.log`. |
-| `uv run pytest -q` | Runs the test suite (under 1 second). |
+| `make test` | Runs the backend tests (pytest) and the frontend tests (`bun test`), each in under 1 second. |
+
+Requirements for `make test`: [bun](https://bun.sh), in addition to the list above.
 
 ## Configuration
 
@@ -76,6 +78,8 @@ All settings come from environment variables. `make run` reads them from `.env`.
 | Variable | Default | Meaning |
 |---|---|---|
 | `OPENCODE_API_KEY` | (required) | The API key for OpenCode Go. |
+| `LLM_PROVIDER` | `opencode` | The model provider, by registry name. |
+| `STORAGE_BACKEND` | `sqlite` | The history store, by registry name. |
 | `OPENCODE_BASE_URL` | `https://opencode.ai/inference/go/openai/v1` | The OpenAI-compatible base URL. |
 | `MODEL` | `deepseek-v4.1-flash` | The model ID. |
 | `CONTEXT_WINDOW` | `8192` | The hard cap for one request: prompt plus output tokens. |
@@ -111,23 +115,30 @@ INFO  mini_deepagents.app request completed request_id=f1da5b3acaca method=POST 
 | Method and path | Result |
 |---|---|
 | `GET /` | The chat page. |
-| `GET /api/sessions` | All sessions, newest first. |
-| `POST /api/sessions` | A new session (201). |
-| `GET /api/sessions/{id}/messages` | The full history of one session. |
-| `POST /api/sessions/{id}/messages` with `{"content": "..."}` | The model reply as `{"reply": "..."}`. Errors: 404 unknown session, 413 message too long, 502 model failed. |
+| `GET /api/v1/sessions` | All sessions, newest first. |
+| `POST /api/v1/sessions` | A new session (201). |
+| `GET /api/v1/sessions/{id}/messages` | The full history of one session. |
+| `POST /api/v1/sessions/{id}/messages` with `{"content": "..."}` | The reply as a stream: `200 text/event-stream` with `delta`, `done`, and `error` frames. Errors before the stream: 404 unknown session, 413 message too long, 422 invalid body. |
 
-Every response carries an `X-Request-ID` header.
+Every response carries an `X-Request-ID` header. `ARCHITECTURE.md` defines the SSE frames.
 
 ## Project layout
 
 ```
-src/mini_deepagents/
-  config.py          settings from environment variables
-  context.py         token estimate and trimming to the budget
-  store.py           SQLite store for sessions and messages
-  llm.py             client for the OpenCode Go chat-completions API
-  logging_setup.py   key=value log lines with a request ID
-  app.py             FastAPI routes that join the parts
-  static/index.html  the one-page chat UI
-tests/               one test file per module
+src/
+  backend/mini_deepagents/   Python package, hexagonal design
+    main.py                  composition root: wires every part
+    chat/                    domain: types, ports, 8K budget, ChatService
+    adapters/llm/            model providers (opencode), by registry name
+    adapters/storage/        history stores (sqlite + migrations), by registry name
+    adapters/http/           v1 routes, SSE encoder, request middleware
+    observability/           key=value logs with a request ID
+  frontend/                  vanilla JS, no build step
+    index.html, css/app.css
+    js/main.js, api.js, sse.js, state.js, ui/*.js
+tests/
+  backend/                   pytest: contract tests per port, service, HTTP
+  frontend/                  bun test: the SSE parser
 ```
+
+`ARCHITECTURE.md` explains each part and each seam for growth.
