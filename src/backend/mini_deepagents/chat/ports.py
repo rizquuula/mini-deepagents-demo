@@ -7,7 +7,7 @@ keep.
 
 from __future__ import annotations
 
-from collections.abc import AsyncIterator, Sequence
+from collections.abc import AsyncGenerator, Sequence
 from typing import Protocol
 
 from mini_deepagents.chat.domain import Message, ModelEvent, Session
@@ -18,7 +18,7 @@ class ChatModel(Protocol):
 
     def stream(
         self, messages: Sequence[Message], *, max_tokens: int, session_key: str
-    ) -> AsyncIterator[ModelEvent]:
+    ) -> AsyncGenerator[ModelEvent, None]:
         """Stream the reply to ``messages``, oldest first.
 
         Contract:

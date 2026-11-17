@@ -115,7 +115,7 @@ class ChatService:
             turn.window, max_tokens=self._max_output_tokens, session_key=session_key
         )
         parts: list[str] = []
-        async with aclosing(events):  # type: ignore[type-var]  # port returns AsyncIterator
+        async with aclosing(events):
             async for event in events:
                 if isinstance(event, TextDelta):
                     parts.append(event.text)

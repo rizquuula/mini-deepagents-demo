@@ -7,12 +7,12 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
 
+from mini_deepagents.errors import ConfigError
+
+__all__ = ["ConfigError", "Settings"]
+
 _API_KEY_VAR = "OPENCODE_API_KEY"
 _LOG_LEVELS = ("DEBUG", "INFO", "WARNING", "ERROR")
-
-
-class ConfigError(Exception):
-    """A setting is missing or not valid. The message never holds the API key."""
 
 
 @dataclass(frozen=True)
@@ -25,6 +25,8 @@ class Settings:
     db_path: Path = Path("chat.db")
     log_level: str = "INFO"
     log_file: Path = Path("logs/app.log")
+    llm_provider: str = "opencode"
+    storage_backend: str = "sqlite"
 
     @property
     def input_budget(self) -> int:
@@ -73,6 +75,8 @@ class Settings:
             db_path=Path(db_path) if db_path else defaults.db_path,
             log_level=log_level,
             log_file=Path(log_file) if log_file else defaults.log_file,
+            llm_provider=source.get("LLM_PROVIDER") or defaults.llm_provider,
+            storage_backend=source.get("STORAGE_BACKEND") or defaults.storage_backend,
         )
 
 

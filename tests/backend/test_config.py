@@ -21,6 +21,8 @@ def test_only_the_key_set_uses_every_default() -> None:
     assert settings.input_budget == 7168
     assert settings.log_level == "INFO"
     assert settings.log_file == Path("logs/app.log")
+    assert settings.llm_provider == "opencode"
+    assert settings.storage_backend == "sqlite"
 
 
 def test_empty_optional_vars_use_the_default() -> None:
@@ -32,6 +34,8 @@ def test_empty_optional_vars_use_the_default() -> None:
             "DB_PATH": "",
             "LOG_LEVEL": "",
             "LOG_FILE": "",
+            "LLM_PROVIDER": "",
+            "STORAGE_BACKEND": "",
         }
     )
 
@@ -49,6 +53,8 @@ def test_every_var_set_overrides_every_default() -> None:
             "DB_PATH": "/tmp/other.db",
             "LOG_LEVEL": "debug",
             "LOG_FILE": "/tmp/other.log",
+            "LLM_PROVIDER": "other-provider",
+            "STORAGE_BACKEND": "other-backend",
         }
     )
 
@@ -61,6 +67,8 @@ def test_every_var_set_overrides_every_default() -> None:
         db_path=Path("/tmp/other.db"),
         log_level="DEBUG",
         log_file=Path("/tmp/other.log"),
+        llm_provider="other-provider",
+        storage_backend="other-backend",
     )
     assert settings.input_budget == 3584
 
