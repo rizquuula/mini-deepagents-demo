@@ -15,14 +15,17 @@ from mini_deepagents.chat.domain import (
     Usage,
 )
 from mini_deepagents.chat.ports import ChatModel, ChatRepository, TokenEstimator
+from mini_deepagents.chat.service import ChatService, PreparedTurn
 
 __all__ = [
     "ByteTokenEstimator",
     "ChatEvent",
     "ChatModel",
+    "ChatService",
     "ChatRepository",
     "Message",
     "ModelEvent",
+    "PreparedTurn",
     "ReplyDone",
     "Role",
     "Session",
