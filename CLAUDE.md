@@ -4,8 +4,10 @@ A minimal web chat with an 8K-token context cap. Python, managed with `uv`.
 
 ## Commands
 
+- Show the targets: `make` (the same as `make help`)
+- Run the server: `make run` (reads `.env`; set `HOST` or `PORT` to override)
+- Follow the logs: `make logs` (tails `logs/app.log`)
 - Run the tests: `uv run pytest -q`
-- Run the server: `uv run --env-file .env uvicorn mini_deepagents.app:create_app --factory`
 
 ## Tests: keep them lean and quick
 
