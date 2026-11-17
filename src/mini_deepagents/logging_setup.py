@@ -23,7 +23,7 @@ _LOG_BACKUP_COUNT: Final = 3
 _OWNED_MARK: Final = "_mini_deepagents_handler"
 _STANDARD_ATTRS: Final = frozenset(
     vars(logging.LogRecord("", 0, "", 0, "", None, None))
-) | {"message", "asctime", "taskName", "request_id"}
+) | {"message", "asctime", "taskName", "request_id", "color_message"}  # uvicorn's colored copy
 _QUOTE_TRIGGERS: Final = (" ", '"', "=")
 
 

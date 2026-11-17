@@ -34,7 +34,15 @@ def make_record(
 
 
 def test_formatter_renders_one_line_with_ordered_and_quoted_fields() -> None:
-    record = make_record({"session_id": 7, "note": "two words", "empty": "", "error": None})
+    record = make_record(
+        {
+            "session_id": 7,
+            "note": "two words",
+            "empty": "",
+            "error": None,
+            "color_message": "uvicorn copy with \x1b[36mcolor codes\x1b[0m",
+        }
+    )
 
     line = KeyValueFormatter().format(record)
 
