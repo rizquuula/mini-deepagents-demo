@@ -207,7 +207,9 @@
     const response = await fetch(path, options);
     const data = await response.json().catch(() => null);
     if (!response.ok) {
-      throw new ApiError(response.status, errorText(response.status, data));
+      const text = errorText(response.status, data);
+      const requestId = response.headers.get("X-Request-ID");
+      throw new ApiError(response.status, requestId ? `${text} (request ${requestId})` : text);
     }
     return data;
   }

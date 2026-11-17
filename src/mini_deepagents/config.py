@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 _API_KEY_VAR = "OPENCODE_API_KEY"
+_LOG_LEVELS = ("DEBUG", "INFO", "WARNING", "ERROR")
 
 
 class ConfigError(Exception):
@@ -22,6 +23,8 @@ class Settings:
     context_window: int = 8192
     max_output_tokens: int = 1024
     db_path: Path = Path("chat.db")
+    log_level: str = "INFO"
+    log_file: Path = Path("logs/app.log")
 
     @property
     def input_budget(self) -> int:
@@ -36,7 +39,8 @@ class Settings:
 
         Raises:
             ConfigError: The key is missing, an int does not parse or is not
-                positive, or the output reserve does not fit the window.
+                positive, the output reserve does not fit the window, or
+                ``LOG_LEVEL`` is not a known level.
         """
         source = os.environ if env is None else env
         api_key = source.get(_API_KEY_VAR, "")
@@ -54,7 +58,12 @@ class Settings:
                 f"CONTEXT_WINDOW ({context_window})"
             )
 
+        log_level = (source.get("LOG_LEVEL") or defaults.log_level).upper()
+        if log_level not in _LOG_LEVELS:
+            raise ConfigError(f"LOG_LEVEL must be one of {', '.join(_LOG_LEVELS)}")
+
         db_path = source.get("DB_PATH")
+        log_file = source.get("LOG_FILE")
         return cls(
             api_key=api_key,
             base_url=source.get("OPENCODE_BASE_URL") or defaults.base_url,
@@ -62,6 +71,8 @@ class Settings:
             context_window=context_window,
             max_output_tokens=max_output_tokens,
             db_path=Path(db_path) if db_path else defaults.db_path,
+            log_level=log_level,
+            log_file=Path(log_file) if log_file else defaults.log_file,
         )
 
 

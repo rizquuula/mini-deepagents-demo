@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Iterator, Mapping, Sequence
 from pathlib import Path
 
@@ -10,6 +11,7 @@ from mini_deepagents.app import create_app
 from mini_deepagents.config import Settings
 from mini_deepagents.context import estimate_tokens
 from mini_deepagents.llm import LLMError
+from mini_deepagents.logging_setup import RequestIdFilter
 from mini_deepagents.store import ChatStore
 
 REPLY = "fixed reply"
@@ -17,10 +19,10 @@ UNKNOWN_SESSION_ID = 9999
 
 
 class FakeModel:
-    """Record each chat call; return a fixed reply or raise ``LLMError``."""
+    """Record each chat call; return a fixed reply or raise ``error``."""
 
-    def __init__(self, *, fail: bool = False) -> None:
-        self.fail = fail
+    def __init__(self, *, error: Exception | None = None) -> None:
+        self.error = error
         self.calls: list[tuple[list[Mapping[str, str]], int]] = []
         self.session_ids: list[str] = []
         self.close_calls = 0
@@ -30,8 +32,8 @@ class FakeModel:
     ) -> str:
         self.calls.append((list(messages), max_tokens))
         self.session_ids.append(session_id)
-        if self.fail:
-            raise LLMError("model request failed: status=500")
+        if self.error is not None:
+            raise self.error
         return REPLY
 
     def close(self) -> None:
@@ -64,6 +66,18 @@ def client(settings: Settings, fake: FakeModel) -> Iterator[TestClient]:
         yield test_client
 
 
+@pytest.fixture
+def logs(caplog: pytest.LogCaptureFixture) -> pytest.LogCaptureFixture:
+    caplog.set_level(logging.INFO)
+    caplog.handler.addFilter(RequestIdFilter())
+    return caplog
+
+
+def find_record(caplog: pytest.LogCaptureFixture, message: str) -> logging.LogRecord:
+    [record] = [r for r in caplog.records if r.getMessage() == message]
+    return record
+
+
 def create_session(client: TestClient) -> int:
     response = client.post("/api/sessions")
     assert response.status_code == 201
@@ -82,18 +96,23 @@ def test_created_session_is_listed(client: TestClient) -> None:
 
 
 def test_send_returns_reply_and_saves_the_exchange(
-    client: TestClient, fake: FakeModel
+    client: TestClient, fake: FakeModel, logs: pytest.LogCaptureFixture
 ) -> None:
     session_id = create_session(client)
 
     response = client.post(f"/api/sessions/{session_id}/messages", json={"content": "hi"})
 
     assert response.status_code == 200
+    fitted = find_record(logs, "context fitted")
+    assert fitted.request_id == response.headers["X-Request-ID"]
+    assert fitted.session_id == session_id
+    assert (fitted.sent_messages, fitted.dropped_messages) == (1, 0)
     assert response.json() == {"reply": REPLY}
     assert fake.calls == [([{"role": "user", "content": "hi"}], 1024)]
     assert fake.session_ids == [f"mini-deepagents-{session_id}"]
     messages = client.get(f"/api/sessions/{session_id}/messages")
     assert messages.status_code == 200
+    assert messages.headers["X-Request-ID"] != response.headers["X-Request-ID"]
     assert messages.json() == [
         {"role": "user", "content": "hi"},
         {"role": "assistant", "content": REPLY},
@@ -127,7 +146,7 @@ def test_model_request_stays_inside_the_context_window(
 
 
 def test_oversize_message_returns_413_and_saves_nothing(
-    small_settings: Settings, fake: FakeModel
+    small_settings: Settings, fake: FakeModel, logs: pytest.LogCaptureFixture
 ) -> None:
     with TestClient(create_app(small_settings, model=fake)) as client:
         session_id = create_session(client)
@@ -140,6 +159,9 @@ def test_oversize_message_returns_413_and_saves_nothing(
     assert response.json() == {"detail": "message is too long for the context window"}
     assert fake.calls == []
     assert messages == []
+    rejected = find_record(logs, "message rejected")
+    assert rejected.levelno == logging.WARNING
+    assert rejected.reason == "too_long"
 
 
 @pytest.mark.parametrize("method", ["GET", "POST"])
@@ -155,18 +177,42 @@ def test_unknown_session_returns_404(
     assert fake.calls == []
 
 
-def test_model_failure_returns_502_and_saves_nothing(settings: Settings) -> None:
-    failing = FakeModel(fail=True)
+def test_model_failure_returns_502_and_logs_without_content(
+    settings: Settings, logs: pytest.LogCaptureFixture
+) -> None:
+    failing = FakeModel(error=LLMError("model request failed: status=500"))
     with TestClient(create_app(settings, model=failing)) as client:
         session_id = create_session(client)
         response = client.post(
-            f"/api/sessions/{session_id}/messages", json={"content": "hi"}
+            f"/api/sessions/{session_id}/messages", json={"content": "private question"}
         )
         messages = client.get(f"/api/sessions/{session_id}/messages").json()
 
     assert response.status_code == 502
     assert response.json() == {"detail": "model request failed"}
     assert messages == []
+    failed = find_record(logs, "model call failed")
+    assert failed.levelno == logging.ERROR
+    assert failed.session_id == session_id
+    assert all("private question" not in str(vars(r)) for r in logs.records)
+
+
+def test_unexpected_model_error_returns_500_with_request_id(
+    settings: Settings, logs: pytest.LogCaptureFixture
+) -> None:
+    broken = FakeModel(error=RuntimeError("bug"))
+    with TestClient(create_app(settings, model=broken)) as client:
+        session_id = create_session(client)
+        response = client.post(
+            f"/api/sessions/{session_id}/messages", json={"content": "hi"}
+        )
+
+    assert response.status_code == 500
+    assert response.json() == {"detail": "internal server error"}
+    unhandled = find_record(logs, "unhandled error")
+    assert unhandled.levelno == logging.ERROR
+    assert unhandled.exc_info is not None
+    assert unhandled.request_id == response.headers["X-Request-ID"]
 
 
 def test_empty_content_returns_422(client: TestClient, fake: FakeModel) -> None:

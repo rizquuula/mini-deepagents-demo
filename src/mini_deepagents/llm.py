@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from collections.abc import Mapping, Sequence
 from typing import Protocol
 
@@ -52,9 +53,11 @@ class OpenCodeClient:
             "messages": [{"role": m["role"], "content": m["content"]} for m in messages],
             "max_tokens": max_tokens,
         }
+        started = time.perf_counter()
         body = self._post(payload, session_id)
         reply = _extract_reply(body)
-        _log_usage(self._model, body.get("usage"))
+        duration_ms = int((time.perf_counter() - started) * 1000)
+        _log_usage(self._model, body.get("usage"), duration_ms)
         return reply
 
     def close(self) -> None:
@@ -91,12 +94,15 @@ def _extract_reply(body: Mapping[str, object]) -> str:
     return content
 
 
-def _log_usage(model: str, usage: object) -> None:
+def _log_usage(model: str, usage: object, duration_ms: int) -> None:
     counts = usage if isinstance(usage, Mapping) else {}
     logger.info(
-        "model call succeeded model=%s prompt_tokens=%s completion_tokens=%s total_tokens=%s",
-        model,
-        counts.get("prompt_tokens"),
-        counts.get("completion_tokens"),
-        counts.get("total_tokens"),
+        "model call succeeded",
+        extra={
+            "model": model,
+            "prompt_tokens": counts.get("prompt_tokens"),
+            "completion_tokens": counts.get("completion_tokens"),
+            "total_tokens": counts.get("total_tokens"),
+            "duration_ms": duration_ms,
+        },
     )

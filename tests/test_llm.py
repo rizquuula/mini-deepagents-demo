@@ -125,35 +125,33 @@ def test_chat_raises_llm_error_on_unusable_body(response: httpx.Response, match:
         client.chat(MESSAGES, max_tokens=64, session_id=SESSION_ID)
 
 
-def test_chat_logs_token_usage_without_key_or_content(caplog: pytest.LogCaptureFixture) -> None:
-    usage = {"prompt_tokens": 11, "completion_tokens": 7, "total_tokens": 18}
+@pytest.mark.parametrize(
+    ("usage", "expected"),
+    [
+        pytest.param(
+            {"prompt_tokens": 11, "completion_tokens": 7, "total_tokens": 18},
+            (11, 7, 18),
+            id="usage",
+        ),
+        pytest.param(None, (None, None, None), id="no-usage"),
+    ],
+)
+def test_chat_logs_token_usage_without_key_or_content(
+    caplog: pytest.LogCaptureFixture, usage: object, expected: tuple[object, ...]
+) -> None:
     client = make_client(httpx.Response(200, json=ok_body("reply text", usage)), [])
 
     with caplog.at_level(logging.INFO, logger=LOGGER_NAME):
         client.chat(MESSAGES, max_tokens=64, session_id=SESSION_ID)
 
-    records = [r for r in caplog.records if r.name == LOGGER_NAME]
-    assert len(records) == 1
-    assert records[0].levelno == logging.INFO
-    line = records[0].getMessage()
-    assert MODEL in line
-    assert "prompt_tokens=11" in line
-    assert "completion_tokens=7" in line
-    assert "total_tokens=18" in line
-    assert API_KEY not in line
-    assert "private user question" not in line
-    assert "reply text" not in line
-
-
-def test_chat_logs_none_token_counts_when_usage_missing(caplog: pytest.LogCaptureFixture) -> None:
-    client = make_client(httpx.Response(200, json=ok_body("reply text")), [])
-
-    with caplog.at_level(logging.INFO, logger=LOGGER_NAME):
-        client.chat(MESSAGES, max_tokens=64, session_id=SESSION_ID)
-
-    records = [r for r in caplog.records if r.name == LOGGER_NAME]
-    assert len(records) == 1
-    line = records[0].getMessage()
-    assert "prompt_tokens=None" in line
-    assert "completion_tokens=None" in line
-    assert "total_tokens=None" in line
+    [record] = [r for r in caplog.records if r.name == LOGGER_NAME]
+    assert record.levelno == logging.INFO
+    assert record.getMessage() == "model call succeeded"
+    assert record.model == MODEL
+    assert (record.prompt_tokens, record.completion_tokens, record.total_tokens) == expected
+    assert isinstance(record.duration_ms, int)
+    assert record.duration_ms >= 0
+    dumped = str(vars(record))
+    assert API_KEY not in dumped
+    assert "private user question" not in dumped
+    assert "reply text" not in dumped

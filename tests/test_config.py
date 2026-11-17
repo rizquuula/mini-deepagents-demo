@@ -19,11 +19,20 @@ def test_only_the_key_set_uses_every_default() -> None:
     assert settings.max_output_tokens == 1024
     assert settings.db_path == Path("chat.db")
     assert settings.input_budget == 7168
+    assert settings.log_level == "INFO"
+    assert settings.log_file == Path("logs/app.log")
 
 
 def test_empty_optional_vars_use_the_default() -> None:
     settings = Settings.from_env(
-        {"OPENCODE_API_KEY": API_KEY, "MODEL": "", "CONTEXT_WINDOW": "", "DB_PATH": ""}
+        {
+            "OPENCODE_API_KEY": API_KEY,
+            "MODEL": "",
+            "CONTEXT_WINDOW": "",
+            "DB_PATH": "",
+            "LOG_LEVEL": "",
+            "LOG_FILE": "",
+        }
     )
 
     assert settings == Settings(api_key=API_KEY)
@@ -38,6 +47,8 @@ def test_every_var_set_overrides_every_default() -> None:
             "CONTEXT_WINDOW": "4096",
             "MAX_OUTPUT_TOKENS": "512",
             "DB_PATH": "/tmp/other.db",
+            "LOG_LEVEL": "debug",
+            "LOG_FILE": "/tmp/other.log",
         }
     )
 
@@ -48,6 +59,8 @@ def test_every_var_set_overrides_every_default() -> None:
         context_window=4096,
         max_output_tokens=512,
         db_path=Path("/tmp/other.db"),
+        log_level="DEBUG",
+        log_file=Path("/tmp/other.log"),
     )
     assert settings.input_budget == 3584
 
@@ -67,6 +80,7 @@ def test_missing_or_empty_key_raises(env: dict[str, str]) -> None:
         {"MAX_OUTPUT_TOKENS": "-1"},
         {"CONTEXT_WINDOW": "1024", "MAX_OUTPUT_TOKENS": "1024"},
         {"CONTEXT_WINDOW": "1000", "MAX_OUTPUT_TOKENS": "2000"},
+        {"LOG_LEVEL": "verbose"},
     ],
     ids=[
         "non-int",
@@ -75,9 +89,10 @@ def test_missing_or_empty_key_raises(env: dict[str, str]) -> None:
         "negative",
         "output-equals-window",
         "output-above-window",
+        "unknown-log-level",
     ],
 )
-def test_invalid_token_settings_raise_without_the_key(overrides: dict[str, str]) -> None:
+def test_invalid_settings_raise_without_the_key(overrides: dict[str, str]) -> None:
     with pytest.raises(ConfigError) as excinfo:
         Settings.from_env({"OPENCODE_API_KEY": API_KEY, **overrides})
 
