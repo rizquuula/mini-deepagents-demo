@@ -3,7 +3,7 @@
 This is the only module that reads the environment (through
 ``Settings.from_env``) and the only module that knows every adapter.
 
-Run with: uv run --env-file .env uvicorn mini_deepagents.main:create_app --factory
+Run with: uv run --env-file .env uvicorn mini_deepagents_demo.main:create_app --factory
 """
 
 from __future__ import annotations
@@ -18,16 +18,16 @@ from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from mini_deepagents.adapters.http import (
+from mini_deepagents_demo.adapters.http import (
     RequestContextMiddleware,
     create_api_router,
     register_error_handlers,
 )
-from mini_deepagents.adapters.llm import create_chat_model
-from mini_deepagents.adapters.storage import create_repository
-from mini_deepagents.chat import ByteTokenEstimator, ChatModel, ChatRepository, ChatService
-from mini_deepagents.config import Settings
-from mini_deepagents.observability.logging import setup_logging
+from mini_deepagents_demo.adapters.llm import create_chat_model
+from mini_deepagents_demo.adapters.storage import create_repository
+from mini_deepagents_demo.chat import ByteTokenEstimator, ChatModel, ChatRepository, ChatService
+from mini_deepagents_demo.config import Settings
+from mini_deepagents_demo.observability.logging import setup_logging
 
 __all__ = ["FRONTEND_DIR", "create_app"]
 

@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from mini_deepagents.chat.context import ByteTokenEstimator, fit_messages
-from mini_deepagents.chat.domain import (
+from mini_deepagents_demo.chat.context import ByteTokenEstimator, fit_messages
+from mini_deepagents_demo.chat.domain import (
     ChatEvent,
     Message,
     ModelEvent,
@@ -14,8 +14,8 @@ from mini_deepagents.chat.domain import (
     TextDelta,
     Usage,
 )
-from mini_deepagents.chat.ports import ChatModel, ChatRepository, TokenEstimator
-from mini_deepagents.chat.service import ChatService, PreparedTurn
+from mini_deepagents_demo.chat.ports import ChatModel, ChatRepository, TokenEstimator
+from mini_deepagents_demo.chat.service import ChatService, PreparedTurn
 
 __all__ = [
     "ByteTokenEstimator",

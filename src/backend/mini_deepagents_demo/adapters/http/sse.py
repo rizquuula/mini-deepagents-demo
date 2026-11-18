@@ -20,8 +20,8 @@ from collections.abc import AsyncGenerator, Mapping
 from contextlib import aclosing
 from typing import Final
 
-from mini_deepagents.chat import ChatEvent, ReplyDone, TextDelta
-from mini_deepagents.errors import ModelError
+from mini_deepagents_demo.chat import ChatEvent, ReplyDone, TextDelta
+from mini_deepagents_demo.errors import ModelError
 
 __all__ = ["SSE_VERSION", "chat_event_stream", "encode_event"]
 

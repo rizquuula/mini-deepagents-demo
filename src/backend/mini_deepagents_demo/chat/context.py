@@ -11,9 +11,9 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import Final
 
-from mini_deepagents.chat.domain import Message
-from mini_deepagents.chat.ports import TokenEstimator
-from mini_deepagents.errors import ContextOverflowError
+from mini_deepagents_demo.chat.domain import Message
+from mini_deepagents_demo.chat.ports import TokenEstimator
+from mini_deepagents_demo.errors import ContextOverflowError
 
 __all__ = [
     "BYTES_PER_TOKEN",

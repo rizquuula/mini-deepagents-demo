@@ -7,9 +7,9 @@ from collections.abc import Iterator
 from contextlib import closing, contextmanager
 from pathlib import Path
 
-from mini_deepagents import errors
-from mini_deepagents.adapters.storage.migrations import migrate
-from mini_deepagents.chat import Message, Session
+from mini_deepagents_demo import errors
+from mini_deepagents_demo.adapters.storage.migrations import migrate
+from mini_deepagents_demo.chat import Message, Session
 
 
 class SqliteChatRepository:

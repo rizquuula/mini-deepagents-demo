@@ -1,7 +1,7 @@
 [project]
-name = "mini-deepagents"
+name = "mini-deepagents-demo"
 version = "0.1.0"
-description = "Minimal web chat with an 8K-token context cap."
+description = "Reference web chat built on the mini-deepagents framework."
 requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.163.1",

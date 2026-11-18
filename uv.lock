@@ -134,7 +134,7 @@ wheels = [
 ]
 
 [[package]]
-name = "mini-deepagents"
+name = "mini-deepagents-demo"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [

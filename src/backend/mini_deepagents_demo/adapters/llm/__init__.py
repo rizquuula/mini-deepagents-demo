@@ -8,10 +8,10 @@ from __future__ import annotations
 from collections.abc import Callable, Mapping
 from types import MappingProxyType
 
-from mini_deepagents.adapters.llm.opencode import OpenCodeChatModel
-from mini_deepagents.chat import ChatModel
-from mini_deepagents.config import Settings
-from mini_deepagents.errors import ConfigError
+from mini_deepagents_demo.adapters.llm.opencode import OpenCodeChatModel
+from mini_deepagents_demo.chat import ChatModel
+from mini_deepagents_demo.config import Settings
+from mini_deepagents_demo.errors import ConfigError
 
 ChatModelFactory = Callable[[Settings], ChatModel]
 

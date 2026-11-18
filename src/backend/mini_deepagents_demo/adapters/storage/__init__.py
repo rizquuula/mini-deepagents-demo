@@ -10,10 +10,10 @@ from collections.abc import Callable, Mapping
 from types import MappingProxyType
 from typing import Final, TypeAlias
 
-from mini_deepagents.adapters.storage.sqlite import SqliteChatRepository
-from mini_deepagents.chat.ports import ChatRepository
-from mini_deepagents.config import Settings
-from mini_deepagents.errors import ConfigError
+from mini_deepagents_demo.adapters.storage.sqlite import SqliteChatRepository
+from mini_deepagents_demo.chat.ports import ChatRepository
+from mini_deepagents_demo.config import Settings
+from mini_deepagents_demo.errors import ConfigError
 
 RepositoryFactory: TypeAlias = Callable[[Settings], ChatRepository]
 

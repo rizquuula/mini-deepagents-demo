@@ -11,18 +11,18 @@ from dataclasses import dataclass, field
 import httpx
 import pytest
 
-from mini_deepagents.adapters.llm import create_chat_model
-from mini_deepagents.adapters.llm.opencode import OpenCodeChatModel
-from mini_deepagents.chat import ChatModel, Message, ModelEvent, StreamEnd, TextDelta, Usage
-from mini_deepagents.config import Settings
-from mini_deepagents.errors import ConfigError, ModelError
+from mini_deepagents_demo.adapters.llm import create_chat_model
+from mini_deepagents_demo.adapters.llm.opencode import OpenCodeChatModel
+from mini_deepagents_demo.chat import ChatModel, Message, ModelEvent, StreamEnd, TextDelta, Usage
+from mini_deepagents_demo.config import Settings
+from mini_deepagents_demo.errors import ConfigError, ModelError
 from tests.backend.fakes import FakeChatModel
 
 API_KEY = "sk-test-secret-key-123"
 BASE_URL = "https://example.test/v1"
 MODEL = "deepseek-v4.1-flash"
 SESSION_KEY = "mini-deepagents-7"
-LOGGER_NAME = "mini_deepagents.adapters.llm.opencode"
+LOGGER_NAME = "mini_deepagents_demo.adapters.llm.opencode"
 MESSAGES = [Message(role="user", content="private user question")]
 REPLY = ("Hel", "lo")
 REASONING = ("secret thought one", "secret thought two")

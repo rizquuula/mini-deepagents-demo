@@ -14,7 +14,7 @@ from uuid import uuid4
 from starlette.responses import JSONResponse
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
-from mini_deepagents.observability.logging import request_id_var
+from mini_deepagents_demo.observability.logging import request_id_var
 
 __all__ = ["RequestContextMiddleware"]
 

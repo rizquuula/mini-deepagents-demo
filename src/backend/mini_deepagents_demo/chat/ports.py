@@ -10,7 +10,7 @@ from __future__ import annotations
 from collections.abc import AsyncGenerator, Sequence
 from typing import Protocol
 
-from mini_deepagents.chat.domain import Message, ModelEvent, Session
+from mini_deepagents_demo.chat.domain import Message, ModelEvent, Session
 
 
 class ChatModel(Protocol):

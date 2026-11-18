@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import pytest
 
-from mini_deepagents.chat import ByteTokenEstimator, Message, fit_messages
-from mini_deepagents.errors import ContextOverflowError
+from mini_deepagents_demo.chat import ByteTokenEstimator, Message, fit_messages
+from mini_deepagents_demo.errors import ContextOverflowError
 
 ESTIMATOR = ByteTokenEstimator()
 

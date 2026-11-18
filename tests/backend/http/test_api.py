@@ -8,11 +8,11 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from mini_deepagents.chat import Session
-from mini_deepagents.config import Settings
-from mini_deepagents.errors import ModelError
-from mini_deepagents.main import create_app
-from mini_deepagents.observability.logging import RequestIdFilter
+from mini_deepagents_demo.chat import Session
+from mini_deepagents_demo.config import Settings
+from mini_deepagents_demo.errors import ModelError
+from mini_deepagents_demo.main import create_app
+from mini_deepagents_demo.observability.logging import RequestIdFilter
 from tests.backend.fakes import FakeChatModel, InMemoryChatRepository
 
 UNKNOWN_SESSION_ID = 9999

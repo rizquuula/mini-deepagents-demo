@@ -9,10 +9,10 @@ from fastapi import APIRouter, FastAPI, Request, status
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
-from mini_deepagents.adapters.http.sse import chat_event_stream
-from mini_deepagents.chat import ChatService, Message, Session
-from mini_deepagents.errors import ContextOverflowError, SessionNotFoundError
-from mini_deepagents.observability.logging import request_id_var
+from mini_deepagents_demo.adapters.http.sse import chat_event_stream
+from mini_deepagents_demo.chat import ChatService, Message, Session
+from mini_deepagents_demo.errors import ContextOverflowError, SessionNotFoundError
+from mini_deepagents_demo.observability.logging import request_id_var
 
 __all__ = ["create_api_router", "register_error_handlers"]
 

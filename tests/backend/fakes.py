@@ -5,8 +5,8 @@ from __future__ import annotations
 from collections.abc import AsyncGenerator, Sequence
 from datetime import datetime, timedelta, timezone
 
-from mini_deepagents.chat import Message, ModelEvent, Session, StreamEnd, TextDelta, Usage
-from mini_deepagents.errors import ModelError, SessionNotFoundError
+from mini_deepagents_demo.chat import Message, ModelEvent, Session, StreamEnd, TextDelta, Usage
+from mini_deepagents_demo.errors import ModelError, SessionNotFoundError
 
 _EPOCH = datetime(2026, 1, 1, tzinfo=timezone.utc)
 

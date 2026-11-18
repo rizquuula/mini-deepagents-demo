@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from mini_deepagents.adapters.http.api import create_api_router, register_error_handlers
-from mini_deepagents.adapters.http.middleware import RequestContextMiddleware
+from mini_deepagents_demo.adapters.http.api import create_api_router, register_error_handlers
+from mini_deepagents_demo.adapters.http.middleware import RequestContextMiddleware
 
 __all__ = ["RequestContextMiddleware", "create_api_router", "register_error_handlers"]

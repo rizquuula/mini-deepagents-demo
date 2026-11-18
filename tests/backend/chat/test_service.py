@@ -5,7 +5,7 @@ from collections.abc import AsyncIterator
 
 import pytest
 
-from mini_deepagents.chat import (
+from mini_deepagents_demo.chat import (
     ByteTokenEstimator,
     ChatEvent,
     ChatService,
@@ -14,7 +14,7 @@ from mini_deepagents.chat import (
     TextDelta,
     Usage,
 )
-from mini_deepagents.errors import (
+from mini_deepagents_demo.errors import (
     ContextOverflowError,
     ModelError,
     SessionNotFoundError,

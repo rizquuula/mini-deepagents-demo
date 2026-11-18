@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from mini_deepagents.config import ConfigError, Settings
+from mini_deepagents_demo.config import ConfigError, Settings
 
 API_KEY = "sk-test-secret-123"
 

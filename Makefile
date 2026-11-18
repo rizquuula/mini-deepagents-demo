@@ -12,7 +12,7 @@ help: ## Show the available targets
 
 run: ## Start the web chat server on HOST:PORT (reads .env)
 	@test -f $(ENV_FILE) || { echo "$(ENV_FILE) is missing. Run: cp .env.example .env, then set OPENCODE_API_KEY."; exit 1; }
-	uv run --env-file $(ENV_FILE) uvicorn mini_deepagents.main:create_app --factory --host $(HOST) --port $(PORT)
+	uv run --env-file $(ENV_FILE) uvicorn mini_deepagents_demo.main:create_app --factory --host $(HOST) --port $(PORT)
 
 logs: ## Follow the log file (LOG_FILE=logs/app.log)
 	@mkdir -p $(dir $(LOG_FILE))

@@ -3,7 +3,7 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
-import mini_deepagents
+import mini_deepagents_demo
 
 FORBIDDEN = (
     "fastapi",
@@ -13,8 +13,8 @@ FORBIDDEN = (
     "uvicorn",
     "pydantic",
     "logging",
-    "mini_deepagents.adapters",
-    "mini_deepagents.main",
+    "mini_deepagents_demo.adapters",
+    "mini_deepagents_demo.main",
 )
 
 
@@ -34,7 +34,7 @@ def _is_forbidden(module: str) -> bool:
 
 
 def test_domain_core_imports_no_framework_or_adapter() -> None:
-    package = Path(mini_deepagents.__file__).parent
+    package = Path(mini_deepagents_demo.__file__).parent
     files = [*sorted((package / "chat").rglob("*.py")), package / "errors.py"]
 
     violations = sorted(

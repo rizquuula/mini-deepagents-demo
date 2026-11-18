@@ -7,7 +7,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
 
-from mini_deepagents.errors import ConfigError
+from mini_deepagents_demo.errors import ConfigError
 
 __all__ = ["ConfigError", "Settings"]
 

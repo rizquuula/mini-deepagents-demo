@@ -9,8 +9,8 @@ from collections.abc import AsyncGenerator, AsyncIterator, Mapping, Sequence
 
 import httpx
 
-from mini_deepagents.chat import Message, ModelEvent, StreamEnd, TextDelta, Usage
-from mini_deepagents.errors import ModelError
+from mini_deepagents_demo.chat import Message, ModelEvent, StreamEnd, TextDelta, Usage
+from mini_deepagents_demo.errors import ModelError
 
 logger = logging.getLogger(__name__)
 

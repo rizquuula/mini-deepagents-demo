@@ -11,8 +11,8 @@ from collections.abc import AsyncGenerator
 from contextlib import aclosing
 from dataclasses import dataclass
 
-from mini_deepagents.chat.context import fit_messages
-from mini_deepagents.chat.domain import (
+from mini_deepagents_demo.chat.context import fit_messages
+from mini_deepagents_demo.chat.domain import (
     ChatEvent,
     Message,
     ReplyDone,
@@ -20,8 +20,8 @@ from mini_deepagents.chat.domain import (
     StreamEnd,
     TextDelta,
 )
-from mini_deepagents.chat.ports import ChatModel, ChatRepository, TokenEstimator
-from mini_deepagents.errors import ModelError
+from mini_deepagents_demo.chat.ports import ChatModel, ChatRepository, TokenEstimator
+from mini_deepagents_demo.errors import ModelError
 
 __all__ = ["ChatService", "PreparedTurn"]
 
