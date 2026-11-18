@@ -73,7 +73,7 @@ The service saves the exchange only after the final model stream completes. An e
 
 The service never saves the tool steps. A later turn sees only the user message and the final reply. This keeps the history small, but the model loses the tool evidence.
 
-`opencode.py` sends the tool schemas that the loop passes in. The loop passes none on its last call. It joins the streamed tool-call pieces into `ToolCall` objects and logs `tool_calls` in "model stream succeeded".
+`opencode.py` sends the tool schemas that the loop passes in. The loop passes none on its last call. The adapter joins the streamed tool-call pieces into `ToolCall` objects and logs `tool_calls` in "model stream succeeded".
 
 ## Seams
 
