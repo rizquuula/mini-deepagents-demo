@@ -10,7 +10,7 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
 from mini_deepagents import (
-    ChatService,
+    AgentService,
     ContextOverflowError,
     Message,
     Session,
@@ -52,7 +52,7 @@ class MessageResponse(BaseModel):
         return cls(role=message.role, content=message.content)
 
 
-def create_api_router(service: ChatService) -> APIRouter:
+def create_api_router(service: AgentService) -> APIRouter:
     """Build the v1 routes on top of ``service``."""
     router = APIRouter(prefix=API_PREFIX)
 
