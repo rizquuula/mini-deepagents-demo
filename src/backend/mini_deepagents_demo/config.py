@@ -27,6 +27,8 @@ class Settings:
     log_file: Path = Path("logs/app.log")
     llm_provider: str = "opencode"
     storage_backend: str = "sqlite"
+    enabled_tools: tuple[str, ...] = ("calculate",)
+    tool_overhead_tokens: int = 256
 
     @property
     def input_budget(self) -> int:
@@ -37,11 +39,12 @@ class Settings:
     def from_env(cls, env: Mapping[str, str] | None = None) -> Settings:
         """Build settings from ``env`` (``os.environ`` when None).
 
-        A missing or empty optional variable uses the default.
+        A missing or empty optional variable uses the default. The one
+        exception is ``ENABLED_TOOLS``: an empty value means no tools.
 
         Raises:
-            ConfigError: The key is missing, an int does not parse or is not
-                positive, the output reserve does not fit the window, or
+            ConfigError: The key is missing, an int does not parse or is out
+                of range, the output reserve does not fit the window, or
                 ``LOG_LEVEL`` is not a known level.
         """
         source = os.environ if env is None else env
@@ -77,17 +80,42 @@ class Settings:
             log_file=Path(log_file) if log_file else defaults.log_file,
             llm_provider=source.get("LLM_PROVIDER") or defaults.llm_provider,
             storage_backend=source.get("STORAGE_BACKEND") or defaults.storage_backend,
+            enabled_tools=_name_list(source, "ENABLED_TOOLS", defaults.enabled_tools),
+            tool_overhead_tokens=_non_negative_int(
+                source, "TOOL_OVERHEAD_TOKENS", defaults.tool_overhead_tokens
+            ),
         )
 
 
 def _positive_int(source: Mapping[str, str], name: str, default: int) -> int:
+    value = _int(source, name, default)
+    if value <= 0:
+        raise ConfigError(f"{name} must be greater than 0")
+    return value
+
+
+def _non_negative_int(source: Mapping[str, str], name: str, default: int) -> int:
+    value = _int(source, name, default)
+    if value < 0:
+        raise ConfigError(f"{name} must be 0 or greater")
+    return value
+
+
+def _int(source: Mapping[str, str], name: str, default: int) -> int:
     raw = source.get(name)
     if not raw:
         return default
     try:
-        value = int(raw)
+        return int(raw)
     except ValueError as exc:
         raise ConfigError(f"{name} must be an integer") from exc
-    if value <= 0:
-        raise ConfigError(f"{name} must be greater than 0")
-    return value
+
+
+def _name_list(
+    source: Mapping[str, str], name: str, default: tuple[str, ...]
+) -> tuple[str, ...]:
+    """Split a comma-separated list. A missing var uses ``default``; an empty one gives ()."""
+    raw = source.get(name)
+    if raw is None:
+        return default
+    return tuple(item.strip() for item in raw.split(",") if item.strip())

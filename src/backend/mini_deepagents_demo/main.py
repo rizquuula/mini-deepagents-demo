@@ -18,7 +18,7 @@ from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from mini_deepagents import ByteTokenEstimator, ChatModel, ChatRepository, ChatService
+from mini_deepagents import AgentService, ByteTokenEstimator, ChatModel, ChatRepository
 
 from mini_deepagents_demo.adapters.http import (
     RequestContextMiddleware,
@@ -29,6 +29,7 @@ from mini_deepagents_demo.adapters.llm import create_chat_model
 from mini_deepagents_demo.adapters.storage import create_repository
 from mini_deepagents_demo.config import Settings
 from mini_deepagents_demo.observability.logging import setup_logging
+from mini_deepagents_demo.tools import create_tools
 
 __all__ = ["FRONTEND_DIR", "create_app"]
 
@@ -67,12 +68,15 @@ def create_app(
             if owned_model is not None:
                 await owned_model.aclose()
 
-    service = ChatService(
+    tools = create_tools(settings.enabled_tools, settings)
+    service = AgentService(
         repository,
         model,
         ByteTokenEstimator(),
+        tools,
         input_budget=settings.input_budget,
         max_output_tokens=settings.max_output_tokens,
+        tool_overhead_tokens=settings.tool_overhead_tokens,
     )
 
     app = FastAPI(title="mini-deepagents", lifespan=lifespan)
@@ -99,6 +103,8 @@ def _log_startup(settings: Settings) -> None:
             "context_window": settings.context_window,
             "max_output_tokens": settings.max_output_tokens,
             "input_budget": settings.input_budget,
+            "enabled_tools": ",".join(settings.enabled_tools),
+            "tool_overhead_tokens": settings.tool_overhead_tokens,
             "db_path": str(settings.db_path),
             "log_file": str(settings.log_file),
         },
