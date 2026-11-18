@@ -18,7 +18,7 @@ build-backend = "uv_build"
 module-root = "src/backend"
 
 [tool.uv.sources]
-mini-deepagents = { git = "https://github.com/rizquuula/mini-deepagents", rev = "v0.1.0" }
+mini-deepagents = { git = "https://github.com/rizquuula/mini-deepagents", rev = "v0.2.0" }
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
