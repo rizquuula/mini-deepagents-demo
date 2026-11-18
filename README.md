@@ -156,3 +156,7 @@ The domain (types, ports, the 8K budget, `ChatService`) comes from the `mini_dee
 `pyproject.toml` pins that package to a Git tag of the [framework repository](https://github.com/rizquuula/mini-deepagents).
 
 `ARCHITECTURE.md` explains each part and each seam for growth.
+
+## License
+
+MIT. See `LICENSE`.
