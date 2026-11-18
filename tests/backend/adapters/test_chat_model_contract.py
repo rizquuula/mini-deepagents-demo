@@ -187,7 +187,7 @@ def test_opencode_sends_one_streaming_chat_completions_request() -> None:
     assert str(request.url) == f"{BASE_URL}/chat/completions"
     assert request.headers["authorization"] == f"Bearer {API_KEY}"
     assert request.headers["x-opencode-session"] == SESSION_KEY
-    assert request.headers["user-agent"] == "mini-deepagents/0.1.0"
+    assert request.headers["user-agent"] == "mini-deepagents-demo/0.1.0"
     assert json.loads(request.content) == {
         "model": MODEL,
         "messages": [{"role": "user", "content": "private user question"}],

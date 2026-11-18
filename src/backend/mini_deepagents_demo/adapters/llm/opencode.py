@@ -14,7 +14,7 @@ from mini_deepagents import Message, ModelError, ModelEvent, StreamEnd, TextDelt
 logger = logging.getLogger(__name__)
 
 _CHAT_PATH = "/chat/completions"
-_USER_AGENT = "mini-deepagents/0.1.0"
+_USER_AGENT = "mini-deepagents-demo/0.1.0"
 _SESSION_HEADER = "x-opencode-session"
 _SSE_DATA_PREFIX = "data:"
 _SSE_DONE = "[DONE]"
