@@ -67,25 +67,41 @@ function parseData(raw) {
   }
 }
 
+// One reader per known event name. A reader returns null when the data is not valid.
+const ITEM_READERS = {
+  tool_call: (data) =>
+    typeof data.call_id === "string" && typeof data.name === "string"
+      ? { type: "tool_call", callId: data.call_id, name: data.name }
+      : null,
+  tool_result: (data) =>
+    typeof data.call_id === "string" && typeof data.ok === "boolean"
+      ? { type: "tool_result", callId: data.call_id, ok: data.ok }
+      : null,
+  delta: (data) => (typeof data.text === "string" ? { type: "delta", text: data.text } : null),
+  done: (data) => (Number.isInteger(data.reply_chars) ? { type: "done", replyChars: data.reply_chars } : null),
+  error: (data, requestId) => {
+    const message = typeof data.message === "string" ? data.message : "The model request failed.";
+    const eventRequestId = typeof data.request_id === "string" ? data.request_id : requestId;
+    return { type: "error", message: withRequestId(message, eventRequestId) };
+  },
+};
+
 // Map one SSE event to a stream item. Return null for an unknown event name.
 function toStreamItem({ event, data: raw }, requestId) {
-  if (event !== "delta" && event !== "done" && event !== "error") return null;
+  if (!Object.hasOwn(ITEM_READERS, event)) return null;
   const brokenItem = { type: "error", message: withRequestId(STREAM_BROKEN_TEXT, requestId) };
   const data = parseData(raw);
   if (data === null) return brokenItem;
-  if (event === "delta") {
-    return typeof data.text === "string" ? { type: "delta", text: data.text } : brokenItem;
-  }
-  if (event === "done") {
-    return Number.isInteger(data.reply_chars) ? { type: "done", replyChars: data.reply_chars } : brokenItem;
-  }
-  const message = typeof data.message === "string" ? data.message : "The model request failed.";
-  const eventRequestId = typeof data.request_id === "string" ? data.request_id : requestId;
-  return { type: "error", message: withRequestId(message, eventRequestId) };
+  return ITEM_READERS[event](data, requestId) ?? brokenItem;
+}
+
+function isFinalItem(item) {
+  return item.type === "done" || item.type === "error";
 }
 
 /**
- * Send a message and yield the reply as { type: "delta" | "done" | "error", ... } items.
+ * Send a message and yield the reply as items:
+ * { type: "tool_call" | "tool_result" | "delta" | "done" | "error", ... }.
  * Throw ApiError when the server rejects the message before the stream starts.
  * The generator ends after the first "done" or "error" item.
  */
@@ -102,7 +118,7 @@ export async function* streamMessage(sessionId, content, { signal } = {}) {
     const item = toStreamItem(event, requestId);
     if (item === null) continue;
     yield item;
-    if (item.type !== "delta") return;
+    if (isFinalItem(item)) return;
   }
   yield { type: "error", message: withRequestId(STREAM_ENDED_TEXT, requestId) };
 }

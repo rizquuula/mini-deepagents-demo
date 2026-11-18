@@ -62,8 +62,24 @@ export function createMessageView({ containerEl }) {
     startReply() {
       const { el, body } = append("assistant message-pending", "Assistant", PENDING_TEXT);
       let hasText = false;
+      const toolNotes = new Map();
       return {
         el,
+        /** Add a note above the reply text that names the running tool. */
+        showToolCall(callId, name) {
+          const note = document.createElement("span");
+          note.className = "tool-note";
+          note.textContent = `Using ${name}…`;
+          body.before(note);
+          toolNotes.set(callId, { note, name });
+          scrollToEnd();
+        },
+        /** Update the note of the call with the same id. Ignore an unknown id. */
+        showToolResult(callId, ok) {
+          const entry = toolNotes.get(callId);
+          if (entry === undefined) return;
+          entry.note.textContent = ok ? `Used ${entry.name}` : `${entry.name} failed`;
+        },
         appendText(text) {
           if (!hasText) {
             hasText = true;

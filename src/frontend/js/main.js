@@ -93,6 +93,8 @@ function boot() {
     };
     try {
       for await (const item of api.streamMessage(sessionId, content, { signal: controller.signal })) {
+        if (item.type === "tool_call") reply.showToolCall(item.callId, item.name);
+        if (item.type === "tool_result") reply.showToolResult(item.callId, item.ok);
         if (item.type === "delta") reply.appendText(item.text);
         if (item.type === "done") composer.clear();
         if (item.type === "error") {
