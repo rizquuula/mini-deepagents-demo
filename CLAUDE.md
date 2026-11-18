@@ -1,6 +1,6 @@
 # mini-deepagents-demo
 
-The reference app of the [mini-deepagents](https://github.com/rizquuula/mini-deepagents) framework. The framework is a minimal agent harness that works inside an 8K-token context window. This demo shows how to implement the framework ports with real adapters. Today it is a web chat with a hard 8K cap, SQLite history, and replies streamed over SSE. The backend is Python, managed with `uv`. The frontend is vanilla JavaScript.
+The reference app of the [mini-deepagents](https://github.com/rizquuula/mini-deepagents) framework. The framework is a minimal agent harness that works inside an 8K-token context window. This demo shows how to implement the framework ports with real adapters. Today it is a web chat with a hard 8K cap, SQLite history, one tool (`calculate`), and replies streamed over SSE. The backend is Python, managed with `uv`. The frontend is vanilla JavaScript.
 
 This repository is https://github.com/rizquuula/mini-deepagents-demo. The framework repository now holds the domain.
 
@@ -23,8 +23,8 @@ This repository is https://github.com/rizquuula/mini-deepagents-demo. The framew
 Read `ARCHITECTURE.md` before you change the structure. It lists every seam and its growth path.
 
 - Keep the two parts apart. `src/backend/` is the Python package. `src/frontend/` is the browser code. They share no code and talk only through the HTTP API under `/api/v1`.
-- Stream model replies from the backend with SSE. The send route returns `text/event-stream` with `delta`, `done`, and `error` frames, as `ARCHITECTURE.md` defines. Errors before the stream starts are plain JSON (404, 413, 422).
-- The domain core lives in the framework package `mini_deepagents`: `ChatService`, the ports, the context fitting, and the domain errors. Do not copy it back into this repository.
+- Stream model replies from the backend with SSE. The send route returns `text/event-stream` with `tool_call`, `tool_result`, `delta`, `done`, and `error` frames, as `ARCHITECTURE.md` defines. Errors before the stream starts are plain JSON (404, 413, 422).
+- The domain core lives in the framework package `mini_deepagents`: `AgentService` (the tool loop), the ports, the context fitting, and the domain errors. Do not copy it back into this repository.
 - To change the domain, change the framework repository and tag a new version. Then bump the tag in `pyproject.toml` with `uv add`.
 - Implement the framework ports in the demo adapters. Log in the adapters.
 - Import the framework only through its top-level API: `from mini_deepagents import ...`. Tests may also import `mini_deepagents.testing`. `tests/backend/test_architecture.py` enforces both rules.
@@ -34,6 +34,14 @@ Read `ARCHITECTURE.md` before you change the structure. It lists every seam and 
 - Translate vendor errors into the framework's domain errors inside the adapter.
 - Version every contract: `/api/v1` for HTTP, `"v": 1` in each SSE frame, and `PRAGMA user_version` for SQLite. To change the schema, add a migration in `adapters/storage/migrations.py`. Never edit an old migration.
 - Use the fakes from `mini_deepagents.testing` in tests. Run each adapter against the shared contract test in `tests/backend/adapters/`.
+
+## Tools
+
+- Add a tool as one new file in `tools/`, plus one entry in `TOOLS` in `tools/__init__.py`. Never add an `if`/`elif` on a tool name.
+- Count the tokens of each tool schema. State the count before you add the tool.
+- Keep each tool description short. Every request with tools sends every enabled schema.
+- Never log or stream tool arguments or tool results. Log and stream only the tool name, the outcome, and the result length.
+- Make each tool validate its own input. Make each tool cap its own work.
 
 ## Frontend: vanilla JavaScript only
 

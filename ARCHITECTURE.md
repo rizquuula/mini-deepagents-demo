@@ -13,8 +13,10 @@ The domain core is not in this repository. It comes from the framework package `
 
 ```
 mini_deepagents (framework package, installed from a Git tag)
-  ChatService          prepare one turn, stream it, save it
-  ChatModel, ChatRepository, TokenEstimator   the ports (Protocols)
+  AgentService         prepare one turn, run the tool loop, stream it, save it
+  ChatModel, ChatRepository, TokenEstimator, Tool   the ports (Protocols)
+  ToolSpec, ToolSet, ToolCall                  tool schemas and calls
+  ToolCallRequested, ToolStarted, ToolFinished the tool events
   ByteTokenEstimator, fit_messages            the 8K budget
   Message, Session, Usage, TextDelta, StreamEnd, ReplyDone
   MiniDeepAgentsError and the domain errors
@@ -24,6 +26,7 @@ src/backend/mini_deepagents_demo/
   main.py              composition root: reads Settings, builds and wires every part
   config.py            Settings, built from environment variables
   errors.py            ConfigError, the one demo-only error
+  tools/               tool registry (TOOLS, create_tools) + calculate.py
   adapters/            implementations of the framework ports, and the HTTP entry point
     llm/               provider registry + opencode.py (streaming client)
     storage/           backend registry + sqlite.py + migrations.py
@@ -52,15 +55,25 @@ To change the domain, change the framework repository and tag a new version. The
  http/api.py          service.prepare()  -> 404 / 413 as JSON, before any stream
     |                 log "context fitted"
     v
- ChatService          [framework] stream_reply(): model.stream() -> TextDelta ... StreamEnd
-    |                 on StreamEnd: repository.add_exchange(), yield ReplyDone
+ AgentService         [framework] stream_reply(): the tool loop, at most 4 model calls
+    |                 each call: model.stream(tools) -> TextDelta ... ToolCallRequested ... StreamEnd
+    |                 each tool call: yield ToolStarted, tool.run(), yield ToolFinished,
+    |                   cut the result to 512 tokens, call the model again
+    |                 the last call sends no tools, so the model answers in text
+    |                 on the final StreamEnd: save the user message and the final reply,
+    |                   yield ReplyDone
     v
- http/sse.py          delta / done / error frames, log "stream completed"
+ http/sse.py          tool_call / tool_result / delta / done / error frames
+    |                 log "tool finished" per tool call, log "stream completed"
     v
- Browser (js/sse.js)  parse frames -> js/ui/messages.js appends the text
+ Browser (js/sse.js)  parse frames -> js/ui/messages.js shows the tool note and appends the text
 ```
 
-The service saves the exchange only after the model stream completes. An error, a client disconnect, or a cancellation saves nothing.
+The service saves the exchange only after the final model stream completes. An error, a client disconnect, or a cancellation saves nothing.
+
+The service never saves the tool steps. A later turn sees only the user message and the final reply. This keeps the history small, but the model loses the tool evidence.
+
+`opencode.py` sends the enabled tool schemas in each request, except the last one. It joins the streamed tool-call pieces into `ToolCall` objects and logs `tool_calls` in "model stream succeeded".
 
 ## Seams
 
@@ -71,6 +84,7 @@ The framework defines each port. The registries and the adapters stay in the dem
 |---|---|---|
 | Framework port `ChatModel` + demo `adapters/llm` registry (`LLM_PROVIDER`) | `opencode` | A local model, such as Ollama or llama.cpp: add `adapters/llm/<name>.py` and one entry in `PROVIDERS`. |
 | Framework port `ChatRepository` + demo `adapters/storage` registry (`STORAGE_BACKEND`) | `sqlite` | Postgres or another store: add `adapters/storage/<name>.py` and one entry in `BACKENDS`. |
+| Framework port `Tool` + demo `tools/` registry (`ENABLED_TOOLS`) | `calculate` | A new tool: add one file in `tools/` and one entry in `TOOLS`, behind the framework `Tool` port. |
 | Framework port `TokenEstimator` | `ByteTokenEstimator` from the framework (bytes ÷ 3) | The real tokenizer of a model: add a class in the demo and pass it in `main.py`. |
 | Framework events `ChatEvent` → demo `http/sse.py` | SSE | Another transport, such as WebSocket or a CLI, consumes the same events. |
 | Framework base error `MiniDeepAgentsError` | 3 framework subclasses + `ConfigError` in the demo | A new domain error goes into the framework. A demo-only error derives from `MiniDeepAgentsError` in `errors.py`. Adapters translate vendor errors into domain errors. |
@@ -90,6 +104,12 @@ The framework ships the fakes `FakeChatModel` and `InMemoryChatRepository` in `m
 `POST /api/v1/sessions/{id}/messages` returns `200 text/event-stream` with these frames:
 
 ```
+event: tool_call
+data: {"v":1,"call_id":"…","name":"calculate"}
+
+event: tool_result
+data: {"v":1,"call_id":"…","ok":true}
+
 event: delta
 data: {"v":1,"text":"Hel"}
 
@@ -101,6 +121,14 @@ data: {"v":1,"code":"model_failed","message":"model request failed","request_id"
 ```
 
 The stream ends after one `done` or one `error` frame.
+
+The `tool_call` and `tool_result` frames are additive. A v1 client that ignores unknown events still works. The frames never carry tool arguments or tool results.
+
+The `error` frame has one of these codes:
+
+- `context_full`: "the conversation is too long for the context window". The tool steps outgrew the budget in the middle of the stream.
+- `model_failed`: "model request failed".
+- `internal_error`: "internal server error".
 
 Errors that happen before the stream starts come back as plain JSON:
 
