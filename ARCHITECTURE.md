@@ -1,25 +1,30 @@
 # Architecture
 
-mini-deepagents has two parts:
+mini-deepagents-demo is the reference app of the [mini-deepagents](https://github.com/rizquuula/mini-deepagents) framework. It has two parts:
 
-- `src/backend/`: a Python package, `mini_deepagents`, with a hexagonal design.
+- `src/backend/`: a Python package, `mini_deepagents_demo`, with a hexagonal design.
 - `src/frontend/`: plain HTML, CSS, and vanilla JavaScript modules, with no build step.
 
 The two parts share no code. The frontend talks to the backend only through the HTTP API under `/api/v1` and its SSE stream.
 
+The domain core is not in this repository. It comes from the framework package `mini_deepagents`. `pyproject.toml` pins that package to a Git tag of the framework repository.
+
 ## Backend layers
 
 ```
-src/backend/mini_deepagents/
+mini_deepagents (framework package, installed from a Git tag)
+  ChatService          prepare one turn, stream it, save it
+  ChatModel, ChatRepository, TokenEstimator   the ports (Protocols)
+  ByteTokenEstimator, fit_messages            the 8K budget
+  Message, Session, Usage, TextDelta, StreamEnd, ReplyDone
+  MiniDeepAgentsError and the domain errors
+  testing              FakeChatModel, InMemoryChatRepository
+
+src/backend/mini_deepagents_demo/
   main.py              composition root: reads Settings, builds and wires every part
   config.py            Settings, built from environment variables
-  errors.py            MiniDeepAgentsError and its subclasses
-  chat/                the domain: no framework, vendor, or logging imports
-    domain.py          Message, Session, Usage, TextDelta, StreamEnd, ReplyDone
-    ports.py           ChatModel, ChatRepository, TokenEstimator (Protocols)
-    context.py         ByteTokenEstimator, fit_messages (the 8K budget)
-    service.py         ChatService: prepare one turn, stream it, save it
-  adapters/            implementations of the ports, and the HTTP entry point
+  errors.py            ConfigError, the one demo-only error
+  adapters/            implementations of the framework ports, and the HTTP entry point
     llm/               provider registry + opencode.py (streaming client)
     storage/           backend registry + sqlite.py + migrations.py
     http/              api.py (v1 routes), sse.py (wire format), middleware.py
@@ -29,8 +34,12 @@ src/backend/mini_deepagents/
 
 Dependencies point inward:
 
-- `adapters/` and `main.py` import `chat/`.
-- `chat/` never imports `adapters/`, `main.py`, FastAPI, httpx, sqlite3, or `logging`. The test `tests/backend/test_architecture.py` enforces this rule.
+- `adapters/` and `main.py` import the framework.
+- The framework never imports the demo.
+- The demo imports the framework only through its top-level module, `mini_deepagents`. Tests may also import `mini_deepagents.testing`.
+- The test `tests/backend/test_architecture.py` enforces the import rule. It also checks that the demo has no `chat/` package of its own.
+
+To change the domain, change the framework repository and tag a new version. Then bump the tag in `pyproject.toml` with `uv add`.
 
 ## One chat turn
 
@@ -43,7 +52,7 @@ Dependencies point inward:
  http/api.py          service.prepare()  -> 404 / 413 as JSON, before any stream
     |                 log "context fitted"
     v
- chat/service.py      stream_reply(): model.stream() -> TextDelta ... StreamEnd
+ ChatService          [framework] stream_reply(): model.stream() -> TextDelta ... StreamEnd
     |                 on StreamEnd: repository.add_exchange(), yield ReplyDone
     v
  http/sse.py          delta / done / error frames, log "stream completed"
@@ -56,16 +65,17 @@ The service saves the exchange only after the model stream completes. An error, 
 ## Seams
 
 A seam is a boundary where new behaviour arrives as a new file, with no change to existing code.
+The framework defines each port. The registries and the adapters stay in the demo.
 
 | Seam | Today | Growth path |
 |---|---|---|
-| `ChatModel` port + `adapters/llm` registry (`LLM_PROVIDER`) | `opencode` | A local model, such as Ollama or llama.cpp: add `adapters/llm/<name>.py` and one entry in `PROVIDERS`. |
-| `ChatRepository` port + `adapters/storage` registry (`STORAGE_BACKEND`) | `sqlite` | Postgres or another store: add `adapters/storage/<name>.py` and one entry in `BACKENDS`. |
-| `TokenEstimator` port | `ByteTokenEstimator` (bytes ÷ 3) | The real tokenizer of a model: add a class and pass it in `main.py`. |
-| `ChatEvent` domain events → `http/sse.py` | SSE | Another transport, such as WebSocket or a CLI, consumes the same events. |
-| `MiniDeepAgentsError` | 4 subclasses | Each new domain error derives from it. Adapters translate vendor errors into it. |
+| Framework port `ChatModel` + demo `adapters/llm` registry (`LLM_PROVIDER`) | `opencode` | A local model, such as Ollama or llama.cpp: add `adapters/llm/<name>.py` and one entry in `PROVIDERS`. |
+| Framework port `ChatRepository` + demo `adapters/storage` registry (`STORAGE_BACKEND`) | `sqlite` | Postgres or another store: add `adapters/storage/<name>.py` and one entry in `BACKENDS`. |
+| Framework port `TokenEstimator` | `ByteTokenEstimator` from the framework (bytes ÷ 3) | The real tokenizer of a model: add a class in the demo and pass it in `main.py`. |
+| Framework events `ChatEvent` → demo `http/sse.py` | SSE | Another transport, such as WebSocket or a CLI, consumes the same events. |
+| Framework base error `MiniDeepAgentsError` | 3 framework subclasses + `ConfigError` in the demo | A new domain error goes into the framework. A demo-only error derives from `MiniDeepAgentsError` in `errors.py`. Adapters translate vendor errors into domain errors. |
 
-Each port has a fake in `tests/backend/fakes.py`. Each adapter runs the shared contract test in `tests/backend/adapters/`, next to the fake.
+The framework ships the fakes `FakeChatModel` and `InMemoryChatRepository` in `mini_deepagents.testing`. Each adapter runs the shared contract test in `tests/backend/adapters/`, next to the fake.
 
 ## Versioned contracts
 

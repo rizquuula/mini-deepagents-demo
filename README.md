@@ -1,7 +1,12 @@
-# mini-deepagents
+# mini-deepagents-demo
 
-A minimal agent harness that works inside an **8K-token context window**.
+The reference app of the [mini-deepagents](https://github.com/rizquuula/mini-deepagents) framework.
+The framework is a minimal agent harness that works inside an **8K-token context window**.
+This demo shows how to implement the framework ports with real adapters.
 Today it is a small web chat with a hard 8K cap, SQLite history, and replies that stream to the browser over SSE.
+
+The framework repository now holds the domain: `ChatService`, the ports, the context fitting, and the domain errors.
+This repository holds the adapters, the HTTP API, and the browser frontend.
 
 ## Why this project exists
 
@@ -24,7 +29,8 @@ I want an agent harness that works well on them.
 My bet: a small context window can still give good results with a good harness and a good agent loop.
 The model does not need 100K+ tokens.
 It needs the right tokens.
-This project is my attempt to prove that.
+The framework is my attempt to prove that.
+This demo runs the framework against a real model.
 
 ## How the 8K cap works
 
@@ -55,10 +61,11 @@ Requirements:
 
 Steps:
 
-1. Copy the env template: `cp .env.example .env`
-2. Set `OPENCODE_API_KEY` in `.env`.
-3. Start the server: `make run`
-4. Open http://127.0.0.1:8000
+1. Clone the repository: `git clone https://github.com/rizquuula/mini-deepagents-demo.git`
+2. Copy the env template: `cp .env.example .env`
+3. Set `OPENCODE_API_KEY` in `.env`.
+4. Start the server: `make run`. The first run also installs the framework package from its Git tag.
+5. Open http://127.0.0.1:8000
 
 Run `make` to see every target.
 
@@ -95,7 +102,8 @@ Each line holds the time, the level, the event, and `key=value` fields.
 All lines of one request share one `request_id`.
 The web page shows that ID next to an error, so you can find the matching lines.
 
-One real request, with the timestamps and some fields removed:
+One real request, with the timestamps and some fields removed.
+In the logger names, `...` stands for `mini_deepagents_demo.adapters`.
 
 ```
 INFO  ...http.middleware  request received       request_id=3e7c6ebefef6 method=POST path=/api/v1/sessions/1/messages
@@ -128,19 +136,23 @@ Every response carries an `X-Request-ID` header. `ARCHITECTURE.md` defines the S
 
 ```
 src/
-  backend/mini_deepagents/   Python package, hexagonal design
-    main.py                  composition root: wires every part
-    chat/                    domain: types, ports, 8K budget, ChatService
-    adapters/llm/            model providers (opencode), by registry name
-    adapters/storage/        history stores (sqlite + migrations), by registry name
-    adapters/http/           v1 routes, SSE encoder, request middleware
-    observability/           key=value logs with a request ID
-  frontend/                  vanilla JS, no build step
+  backend/mini_deepagents_demo/   Python package, hexagonal design
+    main.py                       composition root: wires every part
+    config.py                     Settings, built from environment variables
+    errors.py                     ConfigError, the one demo-only error
+    adapters/llm/                 model providers (opencode), by registry name
+    adapters/storage/             history stores (sqlite + migrations), by registry name
+    adapters/http/                v1 routes, SSE encoder, request middleware
+    observability/                key=value logs with a request ID
+  frontend/                       vanilla JS, no build step
     index.html, css/app.css
     js/main.js, api.js, sse.js, state.js, ui/*.js
 tests/
-  backend/                   pytest: contract tests per port, service, HTTP
-  frontend/                  bun test: the SSE parser
+  backend/                        pytest: contract tests per port, HTTP, the framework seam
+  frontend/                       bun test: the SSE parser
 ```
+
+The domain (types, ports, the 8K budget, `ChatService`) comes from the `mini_deepagents` package.
+`pyproject.toml` pins that package to a Git tag of the [framework repository](https://github.com/rizquuula/mini-deepagents).
 
 `ARCHITECTURE.md` explains each part and each seam for growth.
