@@ -45,7 +45,7 @@ def _framework_imports_outside(folder: Path, allowed: set[str]) -> list[str]:
 
 
 def test_demo_has_no_domain_core_of_its_own() -> None:
-    assert not (DEMO_PACKAGE / "chat").exists()
+    assert list((DEMO_PACKAGE / "chat").rglob("*.py")) == []
 
 
 def test_production_code_imports_only_the_framework_top_level() -> None:
