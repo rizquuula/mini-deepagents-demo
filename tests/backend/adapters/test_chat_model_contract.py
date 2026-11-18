@@ -11,7 +11,18 @@ from dataclasses import dataclass, field
 import httpx
 import pytest
 
-from mini_deepagents import ChatModel, Message, ModelError, ModelEvent, StreamEnd, TextDelta, Usage
+from mini_deepagents import (
+    ChatModel,
+    Message,
+    ModelError,
+    ModelEvent,
+    StreamEnd,
+    TextDelta,
+    ToolCall,
+    ToolCallRequested,
+    ToolSpec,
+    Usage,
+)
 from mini_deepagents.testing import FakeChatModel
 
 from mini_deepagents_demo.adapters.llm import create_chat_model
@@ -26,6 +37,13 @@ SESSION_KEY = "mini-deepagents-7"
 LOGGER_NAME = "mini_deepagents_demo.adapters.llm.opencode"
 MESSAGES = [Message(role="user", content="private user question")]
 REPLY = ("Hel", "lo")
+CALL_ARGUMENTS = '{"expression": "secret 1234 * 5678"}'
+CALL = ToolCall(id="call_1", name="calculate", arguments=CALL_ARGUMENTS)
+CALCULATE = ToolSpec(
+    name="calculate",
+    description="Do math.",
+    parameters={"type": "object", "properties": {"expression": {"type": "string"}}},
+)
 REASONING = ("secret thought one", "secret thought two")
 PROVIDER_USAGE = {
     "prompt_tokens": 11,
@@ -39,14 +57,34 @@ def _chunk(delta: dict[str, object], finish_reason: str | None = None) -> dict[s
     return {"choices": [{"index": 0, "finish_reason": finish_reason, "delta": delta}]}
 
 
-def provider_chunks(reply: Sequence[str]) -> list[dict[str, object]]:
-    """Return the chunks of one provider stream: role, reasoning, reply, usage."""
-    usage_chunk = _chunk({}, finish_reason="stop")
+def tool_call_chunks(index: int, call: ToolCall) -> list[dict[str, object]]:
+    """Return the pieces of one call: id and name first, then the arguments in two parts."""
+    middle = len(call.arguments) // 2
+    first = {
+        "index": index,
+        "id": call.id,
+        "type": "function",
+        "function": {"name": call.name, "arguments": call.arguments[:middle]},
+    }
+    rest = {"index": index, "function": {"arguments": call.arguments[middle:]}}
+    return [_chunk({"tool_calls": [first]}), _chunk({"tool_calls": [rest]})]
+
+
+def provider_chunks(reply: Sequence[str | ToolCall]) -> list[dict[str, object]]:
+    """Return the chunks of one provider stream: role, reasoning, reply, usage.
+
+    A ``str`` item is reply text. A ``ToolCall`` item becomes split tool-call pieces.
+    """
+    calls = [item for item in reply if isinstance(item, ToolCall)]
+    usage_chunk = _chunk({}, finish_reason="tool_calls" if calls else "stop")
     usage_chunk["usage"] = PROVIDER_USAGE
+    reply_chunks = [_chunk({"content": item}) for item in reply if isinstance(item, str)]
+    for index, call in enumerate(calls):
+        reply_chunks.extend(tool_call_chunks(index, call))
     return [
         _chunk({"role": "assistant", "content": ""}),
         *(_chunk({"reasoning_content": text}) for text in REASONING),
-        *(_chunk({"content": text}) for text in reply),
+        *reply_chunks,
         usage_chunk,
     ]
 
@@ -96,17 +134,25 @@ def opencode_model(provider: MockProvider) -> OpenCodeChatModel:
     )
 
 
-async def collect(model: ChatModel) -> list[ModelEvent]:
+async def collect(
+    model: ChatModel, messages: Sequence[Message], tools: Sequence[ToolSpec]
+) -> list[ModelEvent]:
     return [
         event
-        async for event in model.stream(MESSAGES, max_tokens=64, session_key=SESSION_KEY)
+        async for event in model.stream(
+            messages, max_tokens=64, session_key=SESSION_KEY, tools=tools
+        )
     ]
 
 
-def run_stream(model: ChatModel) -> list[ModelEvent]:
+def run_stream(
+    model: ChatModel,
+    messages: Sequence[Message] = MESSAGES,
+    tools: Sequence[ToolSpec] = (),
+) -> list[ModelEvent]:
     async def scenario() -> list[ModelEvent]:
         try:
-            return await collect(model)
+            return await collect(model, messages, tools)
         finally:
             await model.aclose()
 
@@ -121,12 +167,12 @@ class Subject:
     upstream_closed: Callable[[], bool]
 
 
-def _fake_subject(reply: Sequence[str]) -> Subject:
-    fake = FakeChatModel(deltas=reply)
+def _fake_subject(reply: Sequence[str | ToolCall]) -> Subject:
+    fake = FakeChatModel(steps=[reply])
     return Subject(fake, lambda: fake.closed_early)
 
 
-def _opencode_subject(reply: Sequence[str]) -> Subject:
+def _opencode_subject(reply: Sequence[str | ToolCall]) -> Subject:
     provider = MockProvider(sse_body(provider_chunks(reply)))
     return Subject(
         opencode_model(provider),
@@ -135,7 +181,7 @@ def _opencode_subject(reply: Sequence[str]) -> Subject:
 
 
 @pytest.fixture(params=[_fake_subject, _opencode_subject], ids=["fake", "opencode"])
-def make_subject(request: pytest.FixtureRequest) -> Callable[[Sequence[str]], Subject]:
+def make_subject(request: pytest.FixtureRequest) -> Callable[[Sequence[str | ToolCall]], Subject]:
     return request.param
 
 
@@ -143,7 +189,7 @@ def make_subject(request: pytest.FixtureRequest) -> Callable[[Sequence[str]], Su
 
 
 def test_stream_yields_text_deltas_then_one_stream_end_last(
-    make_subject: Callable[[Sequence[str]], Subject],
+    make_subject: Callable[[Sequence[str | ToolCall]], Subject],
 ) -> None:
     events = run_stream(make_subject(REPLY).model)
 
@@ -152,14 +198,23 @@ def test_stream_yields_text_deltas_then_one_stream_end_last(
 
 
 def test_stream_with_no_reply_text_raises_model_error(
-    make_subject: Callable[[Sequence[str]], Subject],
+    make_subject: Callable[[Sequence[str | ToolCall]], Subject],
 ) -> None:
     with pytest.raises(ModelError, match="empty reply"):
         run_stream(make_subject(()).model)
 
 
+def test_tool_only_stream_yields_each_call_then_one_stream_end(
+    make_subject: Callable[[Sequence[str | ToolCall]], Subject],
+) -> None:
+    events = run_stream(make_subject((CALL,)).model)
+
+    assert events[:-1] == [ToolCallRequested(CALL)]
+    assert isinstance(events[-1], StreamEnd)
+
+
 def test_closing_the_stream_early_stops_the_upstream_call(
-    make_subject: Callable[[Sequence[str]], Subject],
+    make_subject: Callable[[Sequence[str | ToolCall]], Subject],
 ) -> None:
     subject = make_subject(REPLY)
 
@@ -195,6 +250,90 @@ def test_opencode_sends_one_streaming_chat_completions_request() -> None:
         "stream": True,
         "stream_options": {"include_usage": True},
     }
+
+
+def test_opencode_sends_tools_as_functions_when_given() -> None:
+    provider = MockProvider(sse_body(provider_chunks(REPLY)))
+
+    run_stream(opencode_model(provider), tools=[CALCULATE])
+
+    [request] = provider.requests
+    assert json.loads(request.content)["tools"] == [
+        {
+            "type": "function",
+            "function": {
+                "name": "calculate",
+                "description": "Do math.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {"expression": {"type": "string"}},
+                },
+            },
+        }
+    ]
+
+
+def test_opencode_serializes_tool_calls_and_tool_results() -> None:
+    provider = MockProvider(sse_body(provider_chunks(REPLY)))
+    messages = [
+        Message(role="user", content="what is 1234 * 5678?"),
+        Message(role="assistant", content="", tool_calls=(CALL,)),
+        Message(role="tool", content="7006652", tool_call_id="call_1"),
+        Message(role="assistant", content="Let me check.", tool_calls=(CALL,)),
+    ]
+
+    run_stream(opencode_model(provider), messages=messages)
+
+    wire_call = {
+        "id": "call_1",
+        "type": "function",
+        "function": {"name": "calculate", "arguments": CALL_ARGUMENTS},
+    }
+    [request] = provider.requests
+    assert json.loads(request.content)["messages"] == [
+        {"role": "user", "content": "what is 1234 * 5678?"},
+        {"role": "assistant", "content": None, "tool_calls": [wire_call]},
+        {"role": "tool", "tool_call_id": "call_1", "content": "7006652"},
+        {"role": "assistant", "content": "Let me check.", "tool_calls": [wire_call]},
+    ]
+
+
+def test_opencode_yields_tool_calls_in_index_order_after_the_text() -> None:
+    second = ToolCall(id="call_2", name="calculate", arguments='{"expression": "2"}')
+    *text_chunks, usage_chunk = provider_chunks(REPLY)
+    chunks = [
+        *text_chunks,
+        *tool_call_chunks(1, second),
+        *tool_call_chunks(0, CALL),
+        usage_chunk,
+    ]
+
+    events = run_stream(opencode_model(MockProvider(sse_body(chunks))))
+
+    assert events == [
+        TextDelta("Hel"),
+        TextDelta("lo"),
+        ToolCallRequested(CALL),
+        ToolCallRequested(second),
+        StreamEnd(Usage(11, 7, 18)),
+    ]
+
+
+@pytest.mark.parametrize(
+    "piece",
+    [
+        {"index": 0, "type": "function", "function": {"name": "calculate", "arguments": "{}"}},
+        {"index": 0, "id": "call_1", "type": "function", "function": {"arguments": "{}"}},
+    ],
+    ids=["no-id", "no-name"],
+)
+def test_opencode_tool_call_without_id_or_name_raises_model_error(
+    piece: dict[str, object],
+) -> None:
+    chunks = [_chunk({"tool_calls": [piece]}), _chunk({}, finish_reason="tool_calls")]
+
+    with pytest.raises(ModelError, match="malformed tool call"):
+        run_stream(opencode_model(MockProvider(sse_body(chunks))))
 
 
 def test_opencode_drops_reasoning_and_reports_provider_usage() -> None:
@@ -245,6 +384,20 @@ def test_opencode_success_log_carries_token_counts_but_no_content_or_key(
     logged = " ".join(str(value) for value in vars(record).values())
     for secret in (API_KEY, "Hel", "private user question", REASONING[0]):
         assert secret not in logged
+
+
+def test_opencode_success_log_counts_tool_calls_but_not_their_arguments(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    caplog.set_level(logging.INFO, logger=LOGGER_NAME)
+
+    run_stream(opencode_model(MockProvider(sse_body(provider_chunks((CALL,))))))
+
+    [record] = [r for r in caplog.records if r.message == "model stream succeeded"]
+    assert record.tool_calls == 1  # type: ignore[attr-defined]
+    assert isinstance(record.first_delta_ms, int)  # type: ignore[attr-defined]
+    logged = " ".join(str(value) for value in vars(record).values())
+    assert "secret 1234" not in logged
 
 
 # --- Registry ---------------------------------------------------------------
