@@ -7,9 +7,9 @@ from collections.abc import AsyncGenerator, Sequence
 
 import pytest
 
+from mini_deepagents import ChatEvent, ModelError, ReplyDone, TextDelta, Usage
+
 from mini_deepagents_demo.adapters.http.sse import chat_event_stream, encode_event
-from mini_deepagents_demo.chat import ChatEvent, ReplyDone, TextDelta, Usage
-from mini_deepagents_demo.errors import ModelError
 
 SECRET_TEXT = "secret-user-text"
 

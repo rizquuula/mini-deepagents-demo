@@ -7,9 +7,9 @@ from collections.abc import Iterator
 from contextlib import closing, contextmanager
 from pathlib import Path
 
-from mini_deepagents_demo import errors
+from mini_deepagents import Message, Session, SessionNotFoundError
+
 from mini_deepagents_demo.adapters.storage.migrations import migrate
-from mini_deepagents_demo.chat import Message, Session
 
 
 class SqliteChatRepository:
@@ -65,7 +65,7 @@ class SqliteChatRepository:
     @staticmethod
     def _require_session(conn: sqlite3.Connection, session_id: int) -> None:
         if not _session_exists(conn, session_id):
-            raise errors.SessionNotFoundError(f"session {session_id} not found")
+            raise SessionNotFoundError(f"session {session_id} not found")
 
 
 @contextmanager

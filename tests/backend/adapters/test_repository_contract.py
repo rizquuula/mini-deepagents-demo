@@ -9,14 +9,14 @@ from pathlib import Path
 
 import pytest
 
+from mini_deepagents import ChatRepository, Message, SessionNotFoundError
+from mini_deepagents.testing import InMemoryChatRepository
+
 from mini_deepagents_demo.adapters.storage import create_repository
 from mini_deepagents_demo.adapters.storage.migrations import MIGRATIONS
 from mini_deepagents_demo.adapters.storage.sqlite import SqliteChatRepository
-from mini_deepagents_demo.chat import Message
-from mini_deepagents_demo.chat.ports import ChatRepository
 from mini_deepagents_demo.config import Settings
-from mini_deepagents_demo.errors import ConfigError, SessionNotFoundError
-from tests.backend.fakes import InMemoryChatRepository
+from mini_deepagents_demo.errors import ConfigError
 
 UNKNOWN_SESSION_ID = 9999
 
